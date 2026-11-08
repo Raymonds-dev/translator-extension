@@ -26,7 +26,7 @@
     "contextMenus",
     "tabs"
   ],
-  "content_security_policy": "script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; object-src 'self'",
+  "content_security_policy": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
   "background": {
     "scripts": [
       "src/shared/constants.js",

@@ -15,31 +15,13 @@ const inFlightPipelines = new Map();
 async function loadTransformersLibrary() {
   if (!transformersModulePromise) {
     transformersModulePromise = (async () => {
-      try {
-        const localUrl = new URL("../../assets/vendor/transformers.min.js", import.meta.url).href;
-        const mod = await import(localUrl);
-        if (mod && mod.env) {
-          mod.env.allowLocalModels = false;
-          mod.env.useBrowserCache = true;
-        }
-        return mod;
-      } catch (_localErr) {
-        try {
-          const mod = await import("https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2");
-          if (mod && mod.env) {
-            mod.env.allowLocalModels = false;
-            mod.env.useBrowserCache = true;
-          }
-          return mod;
-        } catch (_primaryErr) {
-          const fallbackMod = await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2");
-          if (fallbackMod && fallbackMod.env) {
-            fallbackMod.env.allowLocalModels = false;
-            fallbackMod.env.useBrowserCache = true;
-          }
-          return fallbackMod;
-        }
+      const localUrl = new URL("../../assets/vendor/transformers.min.js", import.meta.url).href;
+      const mod = await import(localUrl);
+      if (mod && mod.env) {
+        mod.env.allowLocalModels = false;
+        mod.env.useBrowserCache = true;
       }
+      return mod;
     })();
   }
   return transformersModulePromise;
