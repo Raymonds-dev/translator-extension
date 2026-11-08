@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
-  "name": "Tradutor Rápido",
+  "name": "TraduzAí",
   "version": "2.0.0",
-  "description": "Consulte traduções de palavras e frases selecionadas rapidamente sem sair da página.",
+  "description": "Selecionou, traduziu! Consulte e escreva traduções de palavras e frases rapidamente sem sair da página.",
   "browser_specific_settings": {
     "gecko": {
       "id": "contextual-quick-translator@extension.local",
@@ -37,11 +37,11 @@
       "16": "assets/icons/icon-16.svg",
       "48": "assets/icons/icon-48.svg"
     },
-    "default_title": "Tradutor Rápido",
+    "default_title": "TraduzAí",
     "default_popup": "src/popup/popup.html"
   },
   "sidebar_action": {
-    "default_title": "Tradutor Rápido",
+    "default_title": "TraduzAí",
     "default_panel": "src/popup/popup.html?view=sidebar",
     "default_icon": "assets/icons/icon-48.svg",
     "open_at_install": false
@@ -93,7 +93,6 @@
     "src/content/widget.css",
     "assets/icons/icon-16.svg",
     "assets/icons/icon-48.svg",
-    "assets/providers/lingva.svg",
     "assets/providers/mymemory.svg",
     "assets/providers/libretranslate.svg",
     "assets/providers/google.svg",

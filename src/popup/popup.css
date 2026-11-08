@@ -279,13 +279,47 @@ body[data-view="sidebar"] .source-input {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   font-size: 11px;
   color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.input-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .char-counter.limit-exceeded {
   color: #EF4444;
   font-weight: 700;
+}
+
+.translate-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #FFFFFF;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background-color 140ms ease, opacity 140ms ease;
+}
+
+.translate-submit-btn:hover {
+  background: var(--accent-hover);
+}
+
+.translate-submit-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 /* Barra de progresso do pacote Offline */

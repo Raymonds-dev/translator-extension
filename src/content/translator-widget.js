@@ -56,6 +56,8 @@
       this.theme = DEFAULTS.THEME;
       this.modalOpacity = DEFAULTS.MODAL_OPACITY;
       this.activeProvider = DEFAULTS.PROVIDER;
+      this.autoTranslateOnType = DEFAULTS.AUTO_TRANSLATE_ON_TYPE;
+      this.typingDebounceMs = DEFAULTS.TYPING_DEBOUNCE_MS;
       this.modalPosition = {
         isCustom: false,
         x: null,
@@ -105,6 +107,15 @@
         }
         if (changes[STORAGE_KEYS.PROVIDER]) {
           this.updateActiveProviderControl(changes[STORAGE_KEYS.PROVIDER].newValue);
+        }
+        if (changes[STORAGE_KEYS.AUTO_TRANSLATE_ON_TYPE]) {
+          this.autoTranslateOnType = Boolean(changes[STORAGE_KEYS.AUTO_TRANSLATE_ON_TYPE].newValue);
+        }
+        if (changes[STORAGE_KEYS.TYPING_DEBOUNCE_MS]) {
+          const val = Number(changes[STORAGE_KEYS.TYPING_DEBOUNCE_MS].newValue);
+          if (Number.isFinite(val) && val >= LIMITS.MIN_TYPING_DEBOUNCE_MS) {
+            this.typingDebounceMs = val;
+          }
         }
         if (changes[STORAGE_KEYS.TRANSLATION_HISTORY]) {
           this.historyItems = changes[STORAGE_KEYS.TRANSLATION_HISTORY].newValue || [];
@@ -216,7 +227,7 @@
           </svg>
         </button>
 
-        <section class="translator-modal hidden" id="translatorModal" role="dialog" aria-label="Tradutor Rápido">
+        <section class="translator-modal hidden" id="translatorModal" role="dialog" aria-label="TraduzAí">
           <header class="modal-top-bar" id="modalDragHandle" title="Arraste para mover o modal na tela">
             <div class="brand-group">
               <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -224,7 +235,7 @@
                 <path d="M14 20H38M26 14V20M33 20C31.5 29 25.5 36.5 16 41M21 26C24.5 31 29.5 35.5 36 38" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M34 50L42 28L50 50M36.5 44H47.5" stroke="#93C5FD" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <span class="brand-title">Tradutor Rápido</span>
+              <span class="brand-title">TraduzAí</span>
             </div>
             <div class="top-actions">
               <select class="quick-provider-select" id="quickProviderSelect" title="Trocar fonte de tradução"></select>
@@ -303,7 +314,16 @@
                 ></textarea>
                 <div class="input-meta">
                   <span id="tempSessionIndicator"></span>
-                  <span class="char-counter" id="charCounter">0 / ${LIMITS.MAX_CHARS_PER_QUERY}</span>
+                  <div class="input-meta-right">
+                    <span class="char-counter" id="charCounter">0 / ${LIMITS.MAX_CHARS_PER_QUERY}</span>
+                    <button type="button" class="translate-submit-btn" id="translateNowBtn" title="Traduzir texto (Ctrl + Enter)">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14"></path>
+                        <path d="m12 5 7 7-7 7"></path>
+                      </svg>
+                      <span>Traduzir</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -387,6 +407,7 @@
         sourceInput: root.getElementById("sourceInput"),
         tempSessionIndicator: root.getElementById("tempSessionIndicator"),
         charCounter: root.getElementById("charCounter"),
+        translateNowBtn: root.getElementById("translateNowBtn"),
         offlineProgressContainer: root.getElementById("offlineProgressContainer"),
         offlineProgressText: root.getElementById("offlineProgressText"),
         offlineProgressFill: root.getElementById("offlineProgressFill"),
@@ -410,7 +431,7 @@
       for (const provider of PROVIDER_CATALOG) {
         const optionEl = document.createElement("option");
         optionEl.value = provider.id;
-        optionEl.textContent = provider.name.split(" (")[0];
+        optionEl.textContent = provider.shortName || provider.name.split(" (")[0];
         selectEl.appendChild(optionEl);
       }
       selectEl.value = this.activeProvider;
@@ -687,6 +708,7 @@
         openOptionsHeaderBtn,
         closeModalBtn,
         sourceInput,
+        translateNowBtn,
         switchLanguagesBtn,
         targetLangSelect,
         copyBtn,
@@ -855,6 +877,19 @@
         this.handleSourceInputChange(sourceInput.value);
       });
 
+      sourceInput.addEventListener("keydown", (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+          event.preventDefault();
+          this.handleManualTranslateSubmit();
+        }
+      });
+
+      if (translateNowBtn) {
+        translateNowBtn.addEventListener("click", () => {
+          this.handleManualTranslateSubmit();
+        });
+      }
+
       switchLanguagesBtn.addEventListener("click", () => {
         this.handleSwitchLanguages();
       });
@@ -960,6 +995,8 @@
 
       const bootstrap = await this.fetchBootstrapInfo();
       this.baseLanguage = normalizeLanguageCode(bootstrap.baseLanguage);
+      this.autoTranslateOnType = Boolean(bootstrap.autoTranslateOnType);
+      this.typingDebounceMs = Number(bootstrap.typingDebounceMs) || DEFAULTS.TYPING_DEBOUNCE_MS;
       this.applyTheme(bootstrap.theme);
       this.applyModalOpacity(bootstrap.modalOpacity);
       this.updateActiveProviderControl(bootstrap.provider);
@@ -1041,12 +1078,27 @@
 
       this.renderCharCounter();
 
-      this.typingDebounceTimer = setTimeout(() => {
-        const shouldAutoRedirect =
-          this.session.sourceLanguage === DEFAULTS.AUTO_LANGUAGE &&
-          !this.session.hasManualTargetOverride;
-        this.executeTranslation({ allowAutoRedirect: shouldAutoRedirect });
-      }, LIMITS.TYPING_DEBOUNCE_MS);
+      if (this.autoTranslateOnType) {
+        const delayMs = Math.max(
+          LIMITS.MIN_TYPING_DEBOUNCE_MS,
+          Number(this.typingDebounceMs) || DEFAULTS.TYPING_DEBOUNCE_MS
+        );
+        this.typingDebounceTimer = setTimeout(() => {
+          const shouldAutoRedirect =
+            this.session.sourceLanguage === DEFAULTS.AUTO_LANGUAGE &&
+            !this.session.hasManualTargetOverride;
+          this.executeTranslation({ allowAutoRedirect: shouldAutoRedirect });
+        }, delayMs);
+      }
+    }
+
+    handleManualTranslateSubmit() {
+      clearTimeout(this.typingDebounceTimer);
+      this.session.sourceText = this.elements.sourceInput.value;
+      const shouldAutoRedirect =
+        this.session.sourceLanguage === DEFAULTS.AUTO_LANGUAGE &&
+        !this.session.hasManualTargetOverride;
+      this.executeTranslation({ allowAutoRedirect: shouldAutoRedirect });
     }
 
     handleSwitchLanguages() {

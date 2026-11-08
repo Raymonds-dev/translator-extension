@@ -6,7 +6,10 @@
   const LIMITS = Object.freeze({
     MAX_CHARS_PER_QUERY: 2000,
     MAX_HISTORY_ITEMS: 20,
-    TYPING_DEBOUNCE_MS: 500,
+    TYPING_DEBOUNCE_MS: 1000,
+    MIN_TYPING_DEBOUNCE_MS: 300,
+    MAX_TYPING_DEBOUNCE_MS: 3000,
+    DEFAULT_TYPING_DEBOUNCE_MS: 1000,
     COPY_FEEDBACK_DURATION_MS: 1500,
     STATUS_FEEDBACK_DURATION_MS: 2500,
     ICON_OFFSET_PX: 8,
@@ -19,11 +22,10 @@
   });
 
   const PROVIDERS = Object.freeze({
-    LINGVA: "lingva",
     MYMEMORY: "mymemory",
     LIBRETRANSLATE: "libretranslate",
-    GOOGLE: "google",
-    OFFLINE: "offline"
+    OFFLINE: "offline",
+    GOOGLE: "google"
   });
 
   const STORAGE_KEYS = Object.freeze({
@@ -34,7 +36,10 @@
     OFFLINE_ENGINE_ENABLED: "offlineEngineEnabled",
     OFFLINE_DOWNLOADED_MODELS: "offlineDownloadedModels",
     BASE_LANGUAGE: "baseLanguage",
+    SECONDARY_LANGUAGE: "secondaryLanguage",
     LAST_SECONDARY_LANGUAGE: "lastSecondaryLanguage",
+    AUTO_TRANSLATE_ON_TYPE: "autoTranslateOnType",
+    TYPING_DEBOUNCE_MS: "typingDebounceMs",
     SHORTCUT: "shortcut",
     SIDEBAR_SHORTCUT: "sidebarShortcut",
     SHOW_SELECTION_ICON: "showSelectionIcon",
@@ -57,15 +62,18 @@
   });
 
   const DEFAULTS = Object.freeze({
-    PROVIDER: PROVIDERS.LINGVA,
+    PROVIDER: PROVIDERS.MYMEMORY,
     API_KEY: "",
     LIBRE_TRANSLATE_URL: "https://translate.terraprint.co",
+    LIBRE_TRANSLATE_LOCAL_URL: "http://localhost:5000",
     LIBRE_TRANSLATE_API_KEY: "",
     OFFLINE_ENGINE_ENABLED: true,
     BASE_LANGUAGE: "pt",
     SECONDARY_LANGUAGE_DEFAULT: "en",
     SECONDARY_LANGUAGE_ALT: "pt",
     AUTO_LANGUAGE: "auto",
+    AUTO_TRANSLATE_ON_TYPE: false,
+    TYPING_DEBOUNCE_MS: LIMITS.DEFAULT_TYPING_DEBOUNCE_MS,
     SHORTCUT: "Alt+T",
     SIDEBAR_SHORTCUT: "Alt+Shift+T",
     POPUP_SHORTCUT: "Ctrl+Shift+Y",

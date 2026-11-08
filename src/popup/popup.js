@@ -64,6 +64,7 @@
     sourceInput: document.getElementById("sourceInput"),
     tempSessionIndicator: document.getElementById("tempSessionIndicator"),
     charCounter: document.getElementById("charCounter"),
+    translateNowBtn: document.getElementById("translateNowBtn"),
     offlineProgressContainer: document.getElementById("offlineProgressContainer"),
     offlineProgressText: document.getElementById("offlineProgressText"),
     offlineProgressFill: document.getElementById("offlineProgressFill"),
@@ -79,6 +80,8 @@
   let baseLanguage = DEFAULTS.BASE_LANGUAGE;
   let currentTheme = DEFAULTS.THEME;
   let activeProvider = DEFAULTS.PROVIDER;
+  let autoTranslateOnType = DEFAULTS.AUTO_TRANSLATE_ON_TYPE;
+  let typingDebounceMs = DEFAULTS.TYPING_DEBOUNCE_MS;
   let historyItems = [];
   let isHistoryViewOpen = false;
   let typingDebounceTimer = null;
@@ -106,7 +109,7 @@
     for (const provider of PROVIDER_CATALOG) {
       const optionEl = document.createElement("option");
       optionEl.value = provider.id;
-      optionEl.textContent = provider.name.split(" (")[0];
+      optionEl.textContent = provider.shortName || provider.name.split(" (")[0];
       elements.quickProviderSelect.appendChild(optionEl);
     }
     elements.quickProviderSelect.value = activeProvider;
@@ -491,12 +494,27 @@
 
     renderCharCounter();
 
-    typingDebounceTimer = setTimeout(() => {
-      const shouldAutoRedirect =
-        session.sourceLanguage === DEFAULTS.AUTO_LANGUAGE &&
-        !session.hasManualTargetOverride;
-      executeTranslation({ allowAutoRedirect: shouldAutoRedirect });
-    }, LIMITS.TYPING_DEBOUNCE_MS);
+    if (autoTranslateOnType) {
+      const delayMs = Math.max(
+        LIMITS.MIN_TYPING_DEBOUNCE_MS,
+        Number(typingDebounceMs) || DEFAULTS.TYPING_DEBOUNCE_MS
+      );
+      typingDebounceTimer = setTimeout(() => {
+        const shouldAutoRedirect =
+          session.sourceLanguage === DEFAULTS.AUTO_LANGUAGE &&
+          !session.hasManualTargetOverride;
+        executeTranslation({ allowAutoRedirect: shouldAutoRedirect });
+      }, delayMs);
+    }
+  }
+
+  function handleManualTranslateSubmit() {
+    clearTimeout(typingDebounceTimer);
+    session.sourceText = elements.sourceInput.value;
+    const shouldAutoRedirect =
+      session.sourceLanguage === DEFAULTS.AUTO_LANGUAGE &&
+      !session.hasManualTargetOverride;
+    executeTranslation({ allowAutoRedirect: shouldAutoRedirect });
   }
 
   function handleSwitchLanguages() {
@@ -656,6 +674,8 @@
     applyTheme(bootstrap.theme);
     updateActiveProviderControl(bootstrap.provider);
     baseLanguage = normalizeLanguageCode(bootstrap.baseLanguage);
+    autoTranslateOnType = Boolean(bootstrap.autoTranslateOnType);
+    typingDebounceMs = Number(bootstrap.typingDebounceMs) || DEFAULTS.TYPING_DEBOUNCE_MS;
     session.targetLanguage = baseLanguage;
     historyItems = Array.isArray(bootstrap.history) ? bootstrap.history : [];
 
@@ -720,6 +740,15 @@
       if (changes[STORAGE_KEYS.THEME]) {
         applyTheme(changes[STORAGE_KEYS.THEME].newValue);
       }
+      if (changes[STORAGE_KEYS.AUTO_TRANSLATE_ON_TYPE]) {
+        autoTranslateOnType = Boolean(changes[STORAGE_KEYS.AUTO_TRANSLATE_ON_TYPE].newValue);
+      }
+      if (changes[STORAGE_KEYS.TYPING_DEBOUNCE_MS]) {
+        const val = Number(changes[STORAGE_KEYS.TYPING_DEBOUNCE_MS].newValue);
+        if (Number.isFinite(val) && val >= LIMITS.MIN_TYPING_DEBOUNCE_MS) {
+          typingDebounceMs = val;
+        }
+      }
     });
   }
 
@@ -735,6 +764,15 @@
   elements.confirmClearHistoryBtn.addEventListener("click", handleConfirmClearHistory);
   elements.themeToggleBtn.addEventListener("click", handleThemeToggle);
   elements.sourceInput.addEventListener("input", handleSourceInputChange);
+  elements.sourceInput.addEventListener("keydown", (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+      event.preventDefault();
+      handleManualTranslateSubmit();
+    }
+  });
+  if (elements.translateNowBtn) {
+    elements.translateNowBtn.addEventListener("click", handleManualTranslateSubmit);
+  }
   elements.switchLanguagesBtn.addEventListener("click", handleSwitchLanguages);
   elements.targetLangSelect.addEventListener("change", handleTargetLanguageChange);
   elements.copyBtn.addEventListener("click", handleCopyClick);
