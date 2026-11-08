@@ -4,6 +4,7 @@
   const namespace = globalScope.TranslatorExt || {};
   const {
     LIMITS,
+    PROVIDERS,
     STORAGE_KEYS,
     COMMAND_NAMES,
     DEFAULTS,
@@ -17,16 +18,84 @@
     areSameLanguages,
     resolveFallbackSecondaryLanguage
   } = namespace.Languages;
-  const { getUserPreferences, saveUserPreferences } = namespace.Storage;
-  const { requestGoogleTranslation } = namespace.ApiClient;
+  const { normalizeProviderId, getNextFreeProviderId } = namespace.Providers;
+  const {
+    getUserPreferences,
+    saveUserPreferences,
+    getTranslationHistory,
+    recordTranslationHistoryEntry,
+    clearTranslationHistory
+  } = namespace.Storage;
+  const {
+    requestTranslationByProvider,
+    isOfflineWorkerRunning,
+    terminateOfflineWorker,
+    inspectCachedOfflineModels,
+    uninstallOfflineModels
+  } = namespace.ApiClient;
 
   const CONTENT_SCRIPT_FILES = Object.freeze([
     "src/shared/constants.js",
     "src/shared/languages.js",
+    "src/shared/providers.js",
     "src/content/widget-styles.js",
     "src/content/translator-widget.js",
     "src/content/content.js"
   ]);
+
+  const openSidebarPorts = new Set();
+
+  if (typeof browser !== "undefined" && browser.runtime && browser.runtime.onConnect) {
+    browser.runtime.onConnect.addListener((port) => {
+      if (!port || port.name !== "sidebar-live-channel") {
+        return;
+      }
+      openSidebarPorts.add(port);
+      port.onDisconnect.addListener(() => {
+        openSidebarPorts.delete(port);
+      });
+    });
+  }
+
+  function pushTextToOpenSidebars(text) {
+    if (!text || openSidebarPorts.size === 0) {
+      return false;
+    }
+
+    let delivered = false;
+    for (const port of openSidebarPorts) {
+      try {
+        port.postMessage({
+          type: MESSAGE_TYPES.PAGE_TEXT_SELECTED,
+          payload: { text }
+        });
+        delivered = true;
+      } catch (_portErr) {
+        openSidebarPorts.delete(port);
+      }
+    }
+    return delivered;
+  }
+
+  if (typeof browser !== "undefined" && browser.storage && browser.storage.onChanged) {
+    browser.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== "local") {
+        return;
+      }
+      if (changes[STORAGE_KEYS.PROVIDER]) {
+        const nextProvider = changes[STORAGE_KEYS.PROVIDER].newValue;
+        if (nextProvider !== PROVIDERS.OFFLINE && isOfflineWorkerRunning()) {
+          terminateOfflineWorker();
+        }
+      }
+      if (changes[STORAGE_KEYS.OFFLINE_ENGINE_ENABLED]) {
+        const enabled = changes[STORAGE_KEYS.OFFLINE_ENGINE_ENABLED].newValue !== false;
+        if (!enabled && isOfflineWorkerRunning()) {
+          terminateOfflineWorker();
+        }
+      }
+    });
+  }
 
   async function recordSecondaryLanguageIfForeign(languageCode, baseLanguage) {
     if (!languageCode || languageCode === DEFAULTS.AUTO_LANGUAGE) {
@@ -57,25 +126,65 @@
   async function handleGetSessionBootstrap() {
     const preferences = await getUserPreferences();
     return {
+      provider: preferences[STORAGE_KEYS.PROVIDER],
       hasApiKey: Boolean(preferences[STORAGE_KEYS.API_KEY]),
+      offlineEngineEnabled: preferences[STORAGE_KEYS.OFFLINE_ENGINE_ENABLED] !== false,
       baseLanguage: preferences[STORAGE_KEYS.BASE_LANGUAGE],
       lastSecondaryLanguage: preferences[STORAGE_KEYS.LAST_SECONDARY_LANGUAGE],
       shortcut: preferences[STORAGE_KEYS.SHORTCUT],
       sidebarShortcut: preferences[STORAGE_KEYS.SIDEBAR_SHORTCUT],
       showSelectionIcon: preferences[STORAGE_KEYS.SHOW_SELECTION_ICON],
       theme: preferences[STORAGE_KEYS.THEME],
-      modalOpacity: preferences[STORAGE_KEYS.MODAL_OPACITY]
+      modalOpacity: preferences[STORAGE_KEYS.MODAL_OPACITY],
+      modalPosition: preferences[STORAGE_KEYS.MODAL_POSITION],
+      history: preferences[STORAGE_KEYS.TRANSLATION_HISTORY] || []
     };
+  }
+
+  async function handleGetOfflineRuntimeStatus() {
+    const preferences = await getUserPreferences();
+    const enabled = preferences[STORAGE_KEYS.OFFLINE_ENGINE_ENABLED] !== false;
+    const storedModels = preferences[STORAGE_KEYS.OFFLINE_DOWNLOADED_MODELS] || [];
+    const cachedModels = await inspectCachedOfflineModels(storedModels);
+
+    return {
+      ok: true,
+      enabled,
+      workerRunning: isOfflineWorkerRunning(),
+      downloadedModels: cachedModels
+    };
+  }
+
+  async function handleSetOfflineEngineEnabled(payload) {
+    const enabled = Boolean(payload?.enabled);
+    if (!enabled) {
+      terminateOfflineWorker();
+    }
+    await saveUserPreferences({
+      [STORAGE_KEYS.OFFLINE_ENGINE_ENABLED]: enabled
+    });
+    return handleGetOfflineRuntimeStatus();
+  }
+
+  async function handleUninstallOfflineModels() {
+    await uninstallOfflineModels();
+    return handleGetOfflineRuntimeStatus();
   }
 
   async function handleTranslateText(payload) {
     const preferences = await getUserPreferences();
+    const activeProvider = normalizeProviderId(
+      payload?.provider || preferences[STORAGE_KEYS.PROVIDER],
+      DEFAULTS.PROVIDER
+    );
     const apiKey = preferences[STORAGE_KEYS.API_KEY];
+    const offlineEngineEnabled = preferences[STORAGE_KEYS.OFFLINE_ENGINE_ENABLED] !== false;
 
-    if (!apiKey) {
+    if (activeProvider === PROVIDERS.GOOGLE && !apiKey) {
       return {
         ok: false,
         status: SESSION_STATUS.MISSING_API_KEY,
+        provider: activeProvider,
         errorMessage: UI_MESSAGES.MISSING_API_KEY
       };
     }
@@ -93,7 +202,9 @@
           effectiveTargetLanguage: normalizeLanguageCode(
             payload?.targetLanguage || preferences[STORAGE_KEYS.BASE_LANGUAGE]
           ),
-          autoRedirected: false
+          provider: activeProvider,
+          autoRedirected: false,
+          history: preferences[STORAGE_KEYS.TRANSLATION_HISTORY] || []
         }
       };
     }
@@ -102,11 +213,13 @@
       return {
         ok: false,
         status: SESSION_STATUS.TEXT_TOO_LONG,
+        provider: activeProvider,
         errorMessage: UI_MESSAGES.TEXT_TOO_LONG
       };
     }
 
     const baseLanguage = preferences[STORAGE_KEYS.BASE_LANGUAGE];
+    const secondaryLanguage = resolveSecondaryRedirectTarget(preferences);
     const requestedSource = payload?.sourceLanguage || DEFAULTS.AUTO_LANGUAGE;
     const allowAutoRedirect = payload?.allowAutoRedirect !== false;
     let effectiveTargetLanguage = normalizeLanguageCode(payload?.targetLanguage || baseLanguage);
@@ -118,15 +231,21 @@
       areSameLanguages(requestedSource, baseLanguage) &&
       areSameLanguages(effectiveTargetLanguage, baseLanguage)
     ) {
-      effectiveTargetLanguage = resolveSecondaryRedirectTarget(preferences);
+      effectiveTargetLanguage = secondaryLanguage;
       autoRedirected = true;
     }
 
-    let translationResult = await requestGoogleTranslation({
+    let translationResult = await requestTranslationByProvider({
+      provider: activeProvider,
       apiKey,
+      libreTranslateUrl: preferences[STORAGE_KEYS.LIBRE_TRANSLATE_URL],
+      libreTranslateApiKey: preferences[STORAGE_KEYS.LIBRE_TRANSLATE_API_KEY],
+      offlineEngineEnabled,
       text: rawText,
       sourceLanguage: requestedSource,
-      targetLanguage: effectiveTargetLanguage
+      targetLanguage: effectiveTargetLanguage,
+      baseLanguage,
+      secondaryLanguage
     });
 
     if (!translationResult.ok) {
@@ -140,12 +259,18 @@
       areSameLanguages(detectedSourceLanguage, baseLanguage) &&
       areSameLanguages(effectiveTargetLanguage, baseLanguage)
     ) {
-      const redirectedTarget = resolveSecondaryRedirectTarget(preferences);
-      const redirectedResult = await requestGoogleTranslation({
+      const redirectedTarget = secondaryLanguage;
+      const redirectedResult = await requestTranslationByProvider({
+        provider: activeProvider,
         apiKey,
+        libreTranslateUrl: preferences[STORAGE_KEYS.LIBRE_TRANSLATE_URL],
+        libreTranslateApiKey: preferences[STORAGE_KEYS.LIBRE_TRANSLATE_API_KEY],
+        offlineEngineEnabled,
         text: rawText,
         sourceLanguage: detectedSourceLanguage,
-        targetLanguage: redirectedTarget
+        targetLanguage: redirectedTarget,
+        baseLanguage,
+        secondaryLanguage
       });
 
       if (!redirectedResult.ok) {
@@ -157,18 +282,52 @@
       autoRedirected = true;
     }
 
-    await recordSecondaryLanguageIfForeign(detectedSourceLanguage, baseLanguage);
+    const finalDetectedSource = translationResult.data.detectedSourceLanguage ||
+      (requestedSource !== DEFAULTS.AUTO_LANGUAGE ? requestedSource : secondaryLanguage);
+
+    await recordSecondaryLanguageIfForeign(finalDetectedSource, baseLanguage);
     await recordSecondaryLanguageIfForeign(effectiveTargetLanguage, baseLanguage);
+
+    const updatedHistory = await recordTranslationHistoryEntry({
+      sourceText: trimmedText,
+      translatedText: translationResult.data.translatedText,
+      sourceLanguage: finalDetectedSource,
+      targetLanguage: effectiveTargetLanguage,
+      provider: activeProvider
+    });
 
     return {
       ok: true,
       status: SESSION_STATUS.SUCCESS,
       data: {
         translatedText: translationResult.data.translatedText,
-        detectedSourceLanguage: translationResult.data.detectedSourceLanguage,
+        detectedSourceLanguage: finalDetectedSource,
         effectiveTargetLanguage,
-        autoRedirected
+        provider: activeProvider,
+        autoRedirected,
+        history: updatedHistory
       }
+    };
+  }
+
+  async function handleQuickSwitchProvider(payload) {
+    const preferences = await getUserPreferences();
+    const currentProvider = preferences[STORAGE_KEYS.PROVIDER];
+    const requestedProvider = payload?.provider
+      ? normalizeProviderId(payload.provider, DEFAULTS.PROVIDER)
+      : getNextFreeProviderId(currentProvider);
+
+    if (requestedProvider !== PROVIDERS.OFFLINE && isOfflineWorkerRunning()) {
+      terminateOfflineWorker();
+    }
+
+    await saveUserPreferences({
+      [STORAGE_KEYS.PROVIDER]: requestedProvider
+    });
+
+    return {
+      ok: true,
+      provider: requestedProvider
     };
   }
 
@@ -327,6 +486,9 @@
 
       if (info.menuItemId === CONTEXT_MENU_IDS.TRANSLATE_SELECTION) {
         const selectedText = typeof info.selectionText === "string" ? info.selectionText.trim() : "";
+        if (selectedText && pushTextToOpenSidebars(selectedText)) {
+          return;
+        }
         if (tab && typeof tab.id === "number") {
           await sendMessageToTabWithAutoInject(tab.id, {
             type: MESSAGE_TYPES.OPEN_MODAL_WITH_TEXT,
@@ -385,6 +547,40 @@
 
       if (message.type === MESSAGE_TYPES.TRANSLATE_TEXT) {
         return handleTranslateText(message.payload);
+      }
+
+      if (message.type === MESSAGE_TYPES.GET_TRANSLATION_HISTORY) {
+        return getTranslationHistory().then((history) => ({ ok: true, history }));
+      }
+
+      if (message.type === MESSAGE_TYPES.CLEAR_TRANSLATION_HISTORY) {
+        return clearTranslationHistory().then((history) => ({ ok: true, history }));
+      }
+
+      if (message.type === MESSAGE_TYPES.QUICK_SWITCH_PROVIDER) {
+        return handleQuickSwitchProvider(message.payload);
+      }
+
+      if (message.type === MESSAGE_TYPES.GET_OFFLINE_RUNTIME_STATUS) {
+        return handleGetOfflineRuntimeStatus();
+      }
+
+      if (message.type === MESSAGE_TYPES.SET_OFFLINE_ENGINE_ENABLED) {
+        return handleSetOfflineEngineEnabled(message.payload);
+      }
+
+      if (message.type === MESSAGE_TYPES.UNINSTALL_OFFLINE_MODELS) {
+        return handleUninstallOfflineModels();
+      }
+
+      if (message.type === MESSAGE_TYPES.PAGE_TEXT_SELECTED) {
+        const text = typeof message.payload?.text === "string" ? message.payload.text.trim() : "";
+        const deliveredToSidebar = pushTextToOpenSidebars(text);
+        return Promise.resolve({
+          ok: true,
+          sidebarOpen: openSidebarPorts.size > 0,
+          deliveredToSidebar
+        });
       }
 
       if (message.type === MESSAGE_TYPES.OPEN_OPTIONS_PAGE) {

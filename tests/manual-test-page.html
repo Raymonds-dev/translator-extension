@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Página de Testes — Tradutor Contextual Rápido</title>
+  <title>Página de Testes — Tradutor Rápido v2.0</title>
   <style>
     body {
       font-family: system-ui, -apple-system, sans-serif;
-      max-width: 820px;
+      max-width: 860px;
       margin: 0 auto;
       padding: 32px 20px;
       background: #F8FAFC;
@@ -17,6 +17,11 @@
     h1 {
       color: #1E3A8A;
       margin-bottom: 8px;
+    }
+    h2 {
+      font-size: 16px;
+      margin: 8px 0 6px;
+      color: #0F172A;
     }
     .card {
       background: #FFFFFF;
@@ -35,6 +40,15 @@
       padding: 2px 8px;
       border-radius: 6px;
       margin-bottom: 8px;
+    }
+    .badge.new {
+      background: #DCFCE7;
+      color: #15803D;
+    }
+    ul {
+      margin: 8px 0 0;
+      padding-left: 20px;
+      font-size: 14px;
     }
     input, textarea {
       width: 100%;
@@ -55,27 +69,54 @@
   </style>
 </head>
 <body>
-  <h1>Bancada de Testes — Tradutor Contextual Rápido</h1>
-  <p>Selecione qualquer frase abaixo para testar o ícone flutuante (US1) ou pressione <strong>Alt + T</strong> (US2/US4).</p>
+  <h1>Bancada de Testes — Tradutor Rápido (v2.0)</h1>
+  <p>Selecione qualquer frase abaixo para testar o ícone flutuante ou pressione <strong>Alt + T</strong> para abrir o modal.</p>
 
   <section class="card">
-    <span class="badge">Inglês (en) → Idioma Base</span>
-    <p>Simplicity is about subtracting the obvious and adding the meaningful. Good software should work without a manual.</p>
+    <span class="badge new">Novo (US1) — Seletor Animado e 5 Fontes de Tradução</span>
+    <h2>Teste de Fontes Gratuitas sem Chave (Lingva, MyMemory, LibreTranslate)</h2>
+    <p>Simplicity is about subtracting the obvious and adding the meaningful. Good software should work without a manual or credit card.</p>
+    <ul>
+      <li>Abra as <strong>Opções</strong> e alterne entre os 5 cartões animados (Lingva, MyMemory, LibreTranslate, Offline e Google).</li>
+      <li>Verifique o logotipo, a descrição em linguagem simples e as etiquetas de limitações de cada opção.</li>
+    </ul>
   </section>
 
   <section class="card">
-    <span class="badge">Espanhol (es) → Idioma Base</span>
+    <span class="badge new">Novo (US2) — Histórico de 20 Traduções + Edição no Lápis</span>
+    <h2>Teste de Histórico no Pop-up, Painel Lateral e Modal</h2>
     <p>La usabilidad es la clave para que una herramienta cotidiana se sienta natural y rápida en el navegador.</p>
+    <ul>
+      <li>Traduza esta frase e clique no botão <strong>Histórico</strong> no topo do Modal, Pop-up ou Painel Lateral.</li>
+      <li>Clique em <strong>Copiar</strong> para validar o aviso <em>"Copiado"</em>.</li>
+      <li>Clique no <strong>ícone de lápis (Editar)</strong> para verificar que a frase traduzida volta para a caixa de texto livre com o par de idiomas invertido.</li>
+    </ul>
   </section>
 
   <section class="card">
-    <span class="badge">Francês (fr) → Idioma Base</span>
-    <p>La simplicité est la sophistication suprême. Sélectionnez cette phrase pour vérifier la traduction instantanée.</p>
+    <span class="badge new">Novo (US3) — Modal Arrastável com Limites de Tela e Botão Centralizar</span>
+    <h2>Teste de Arraste e Persistência de Posição</h2>
+    <p>La simplicité est la sophistication suprême. Sélectionnez cette phrase et déplacez la fenêtre où vous voulez sur l'écran.</p>
+    <ul>
+      <li>Abra o modal na página e arraste-o pela barra superior até tentar passar das bordas da janela (ele deve parar a 16px da borda).</li>
+      <li>Feche o modal (<code>Esc</code>) e abra novamente para confirmar que ele lembra a posição escolhida.</li>
+      <li>Clique no botão <strong>Centralizar</strong> no cabeçalho do modal para devolvê-lo ao centro.</li>
+    </ul>
   </section>
 
   <section class="card">
-    <span class="badge">Português (pt) → Teste de Redirecionamento Inteligente (Q2)</span>
-    <p>Quando você seleciona um texto que já está no seu próprio idioma mãe, a extensão traduz automaticamente para o seu idioma secundário!</p>
+    <span class="badge new">Novo (US4) — Tradução Offline no Navegador (Hugging Face Transformers.js)</span>
+    <h2>Teste de Download do Pacote Offline com Barra de Progresso</h2>
+    <p>Local artificial intelligence runs directly inside your browser without sending your text to external servers.</p>
+    <ul>
+      <li>Nas Opções, escolha <strong>Tradução Offline (No Navegador)</strong> e confira os avisos de 40–80 MB de download e uso de memória RAM.</li>
+      <li>Traduza a frase acima e acompanhe a barra <em>"Baixando pacote de tradução: X%..."</em> em tempo real.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <span class="badge">Português (pt) → Redirecionamento Inteligente para Segundo Idioma</span>
+    <p>Quando você seleciona um texto que já está no seu próprio idioma mãe, a extensão traduz automaticamente para o seu segundo idioma configurado!</p>
   </section>
 
   <section class="card">
@@ -86,13 +127,13 @@
   </section>
 
   <section class="card">
-    <span class="badge">Caso de Borda: Limite de 2.000 Caracteres (Proteção de Cota BYOK)</span>
+    <span class="badge">Caso de Borda: Limite de 2.000 Caracteres</span>
     <p>Selecione todo o bloco abaixo (possui mais de 2.100 caracteres) para testar o bloqueio preventivo <code>TEXT_TOO_LONG</code>:</p>
     <div class="long-text" id="longTextBlock"></div>
   </section>
 
   <script>
-    const sampleSentence = "This repeated sentence is used to exceed the two thousand character safety threshold for BYOK quota protection. ";
+    const sampleSentence = "This repeated sentence is used to exceed the two thousand character safety threshold for quota protection. ";
     document.getElementById("longTextBlock").textContent = sampleSentence.repeat(22);
   </script>
 </body>

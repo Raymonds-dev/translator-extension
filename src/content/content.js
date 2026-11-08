@@ -13,6 +13,7 @@
   const widget = new TranslatorWidget();
   let lastSelectionText = "";
   let lastSelectionRect = null;
+  let lastSidebarSentText = "";
   let showSelectionIcon = DEFAULTS.SHOW_SELECTION_ICON;
 
   function initSelectionIconPreference() {
@@ -130,12 +131,35 @@
     };
   }
 
-  widget.setOnTriggerClick(() => {
+  async function tryForwardSelectionToSidebar(text) {
+    if (!text || typeof browser === "undefined" || !browser.runtime || !browser.runtime.sendMessage) {
+      return false;
+    }
+
+    try {
+      const response = await browser.runtime.sendMessage({
+        type: MESSAGE_TYPES.PAGE_TEXT_SELECTED,
+        payload: { text }
+      });
+      return Boolean(response && response.deliveredToSidebar);
+    } catch (_err) {
+      return false;
+    }
+  }
+
+  widget.setOnTriggerClick(async () => {
     const activeSelection = extractActiveSelectionInfo();
     const textToTranslate = activeSelection?.text || lastSelectionText;
     if (!textToTranslate) {
       return;
     }
+
+    const deliveredToSidebar = await tryForwardSelectionToSidebar(textToTranslate);
+    if (deliveredToSidebar) {
+      widget.hideFloatingTrigger();
+      return;
+    }
+
     widget.openCenteredModal({
       initialText: textToTranslate,
       focusInput: false
@@ -147,12 +171,13 @@
       return;
     }
 
-    setTimeout(() => {
+    setTimeout(async () => {
       const selectionInfo = extractActiveSelectionInfo();
 
       if (!selectionInfo) {
         lastSelectionText = "";
         lastSelectionRect = null;
+        lastSidebarSentText = "";
         if (widget.isTriggerVisible()) {
           widget.hideFloatingTrigger();
         }
@@ -161,6 +186,18 @@
 
       lastSelectionText = selectionInfo.text;
       lastSelectionRect = selectionInfo.rect;
+
+      // Se o Painel Lateral estiver aberto, envia o novo texto selecionado diretamente para ele
+      if (selectionInfo.text !== lastSidebarSentText) {
+        const deliveredToSidebar = await tryForwardSelectionToSidebar(selectionInfo.text);
+        if (deliveredToSidebar) {
+          lastSidebarSentText = selectionInfo.text;
+          if (widget.isTriggerVisible()) {
+            widget.hideFloatingTrigger();
+          }
+          return;
+        }
+      }
 
       if (!showSelectionIcon || widget.isModalOpen() || selectionInfo.isInsideEditable) {
         if (!showSelectionIcon && widget.isTriggerVisible()) {
@@ -180,6 +217,7 @@
     if (!selectionInfo) {
       lastSelectionText = "";
       lastSelectionRect = null;
+      lastSidebarSentText = "";
       if (widget.isTriggerVisible()) {
         widget.hideFloatingTrigger();
       }
