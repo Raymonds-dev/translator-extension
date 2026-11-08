@@ -1,0 +1,126 @@
+name: Package & Release Extension
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-extension-main
+  cancel-in-progress: true
+
+jobs:
+  package-and-release:
+    name: Empacotar e Publicar Extensão (WebExtension)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Ler versão do manifest.json e empacotar extensão (.zip e .xpi)
+        id: package
+        run: |
+          VERSION=$(jq -r '.version' manifest.json)
+          NAME="tradutor-rapido-v${VERSION}"
+          mkdir -p dist
+
+          zip -r "dist/${NAME}.zip" manifest.json assets/ src/
+          cp "dist/${NAME}.zip" "dist/${NAME}.xpi"
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "zip_path=dist/${NAME}.zip" >> "$GITHUB_OUTPUT"
+          echo "xpi_path=dist/${NAME}.xpi" >> "$GITHUB_OUTPUT"
+          echo "zip_name=${NAME}.zip" >> "$GITHUB_OUTPUT"
+          echo "xpi_name=${NAME}.xpi" >> "$GITHUB_OUTPUT"
+
+      - name: Publicar pacotes como artefatos do Workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: tradutor-rapido-v${{ steps.package.outputs.version }}
+          path: |
+            ${{ steps.package.outputs.zip_path }}
+            ${{ steps.package.outputs.xpi_path }}
+          retention-days: 30
+
+      - name: Criar ou atualizar GitHub Release com os pacotes da extensão
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GH_PAT || github.token }}
+          script: |
+            const fs = require('fs');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const version = '${{ steps.package.outputs.version }}';
+            const tag = `v${version}`;
+            const zipPath = '${{ steps.package.outputs.zip_path }}';
+            const xpiPath = '${{ steps.package.outputs.xpi_path }}';
+            const zipName = '${{ steps.package.outputs.zip_name }}';
+            const xpiName = '${{ steps.package.outputs.xpi_name }}';
+
+            let release;
+            try {
+              const existing = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
+              release = existing.data;
+              core.info(`Release ${tag} já existe (#${release.id}). Atualizando artefatos...`);
+            } catch (err) {
+              if (err.status === 404) {
+                const created = await github.rest.repos.createRelease({
+                  owner,
+                  repo,
+                  tag_name: tag,
+                  target_commitish: context.sha,
+                  name: `Tradutor Rápido v${version}`,
+                  body: [
+                    `## Tradutor Rápido v${version}`,
+                    '',
+                    'Pacotes prontos para instalação em navegadores baseados em Gecko (Firefox, Zen Browser) e Chromium:',
+                    `- **\`${xpiName}\`**: Pacote de extensão para Firefox / Zen Browser`,
+                    `- **\`${zipName}\`**: Pacote compactado padrão da WebExtension`
+                  ].join('\n'),
+                  draft: false,
+                  prerelease: false,
+                });
+                release = created.data;
+                core.info(`Release ${tag} criada com sucesso (#${release.id}).`);
+              } else {
+                throw err;
+              }
+            }
+
+            const existingAssets = await github.rest.repos.listReleaseAssets({
+              owner,
+              repo,
+              release_id: release.id,
+            });
+
+            for (const asset of existingAssets.data) {
+              if (asset.name === zipName || asset.name === xpiName) {
+                await github.rest.repos.deleteReleaseAsset({
+                  owner,
+                  repo,
+                  asset_id: asset.id,
+                });
+              }
+            }
+
+            for (const [filePath, fileName, contentType] of [
+              [zipPath, zipName, 'application/zip'],
+              [xpiPath, xpiName, 'application/x-xpinstall']
+            ]) {
+              await github.rest.repos.uploadReleaseAsset({
+                owner,
+                repo,
+                release_id: release.id,
+                name: fileName,
+                data: fs.readFileSync(filePath),
+                headers: {
+                  'content-type': contentType,
+                  'content-length': fs.statSync(filePath).size,
+                },
+              });
+              core.info(`Uploaded asset: ${fileName}`);
+            }

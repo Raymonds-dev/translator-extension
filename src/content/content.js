@@ -1,0 +1,280 @@
+(function initContentScript(globalScope) {
+  "use strict";
+
+  if (globalScope.__translatorExtContentLoaded) {
+    return;
+  }
+  globalScope.__translatorExtContentLoaded = true;
+
+  const namespace = globalScope.TranslatorExt || {};
+  const { MESSAGE_TYPES, STORAGE_KEYS, DEFAULTS } = namespace.CONSTANTS;
+  const TranslatorWidget = namespace.TranslatorWidget;
+
+  const widget = new TranslatorWidget();
+  let lastSelectionText = "";
+  let lastSelectionRect = null;
+  let showSelectionIcon = DEFAULTS.SHOW_SELECTION_ICON;
+
+  function initSelectionIconPreference() {
+    if (typeof browser === "undefined" || !browser.storage || !browser.storage.local) {
+      return;
+    }
+
+    browser.storage.local
+      .get({ [STORAGE_KEYS.SHOW_SELECTION_ICON]: DEFAULTS.SHOW_SELECTION_ICON })
+      .then((stored) => {
+        showSelectionIcon = stored[STORAGE_KEYS.SHOW_SELECTION_ICON] !== false;
+        if (!showSelectionIcon && widget.isTriggerVisible()) {
+          widget.hideFloatingTrigger();
+        }
+      })
+      .catch(() => {});
+
+    if (browser.storage.onChanged) {
+      browser.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName !== "local" || !changes[STORAGE_KEYS.SHOW_SELECTION_ICON]) {
+          return;
+        }
+        showSelectionIcon = changes[STORAGE_KEYS.SHOW_SELECTION_ICON].newValue !== false;
+        if (!showSelectionIcon && widget.isTriggerVisible()) {
+          widget.hideFloatingTrigger();
+        }
+      });
+    }
+  }
+
+  function isEditableFormElement(element) {
+    if (!element || !(element instanceof Element)) {
+      return false;
+    }
+    const tagName = element.tagName ? element.tagName.toLowerCase() : "";
+    if (tagName === "input" || tagName === "textarea") {
+      return true;
+    }
+    return Boolean(element.isContentEditable);
+  }
+
+  function extractActiveSelectionInfo() {
+    const activeElement = document.activeElement;
+    if (
+      activeElement &&
+      (activeElement.tagName === "INPUT" || activeElement.tagName === "TEXTAREA") &&
+      typeof activeElement.selectionStart === "number" &&
+      typeof activeElement.selectionEnd === "number"
+    ) {
+      const selectedInputSlice = activeElement.value.slice(
+        activeElement.selectionStart,
+        activeElement.selectionEnd
+      );
+      const trimmedSlice = selectedInputSlice.trim();
+      if (!trimmedSlice) {
+        return null;
+      }
+      return {
+        text: trimmedSlice,
+        rect: activeElement.getBoundingClientRect(),
+        isInsideEditable: true
+      };
+    }
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+      return null;
+    }
+
+    const rawText = selection.toString();
+    const trimmedText = rawText.trim();
+    if (!trimmedText) {
+      return null;
+    }
+
+    const range = selection.getRangeAt(0);
+    let rect = range.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) {
+      const clientRects = range.getClientRects();
+      if (clientRects.length > 0) {
+        rect = clientRects[clientRects.length - 1];
+      }
+    }
+
+    if (rect.width === 0 && rect.height === 0) {
+      return {
+        text: trimmedText,
+        rect: {
+          left: Math.round(window.innerWidth / 2),
+          top: Math.round(window.innerHeight / 3),
+          right: Math.round(window.innerWidth / 2),
+          bottom: Math.round(window.innerHeight / 3),
+          width: 10,
+          height: 10
+        },
+        isInsideEditable: false
+      };
+    }
+
+    const anchorElement = selection.anchorNode?.nodeType === Node.ELEMENT_NODE
+      ? selection.anchorNode
+      : selection.anchorNode?.parentElement;
+
+    return {
+      text: trimmedText,
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height
+      },
+      isInsideEditable: isEditableFormElement(anchorElement)
+    };
+  }
+
+  widget.setOnTriggerClick(() => {
+    const activeSelection = extractActiveSelectionInfo();
+    const textToTranslate = activeSelection?.text || lastSelectionText;
+    if (!textToTranslate) {
+      return;
+    }
+    widget.openCenteredModal({
+      initialText: textToTranslate,
+      focusInput: false
+    });
+  });
+
+  function evaluateSelectionAndShowTrigger(event) {
+    if (event && widget.isEventInsideWidget(event)) {
+      return;
+    }
+
+    setTimeout(() => {
+      const selectionInfo = extractActiveSelectionInfo();
+
+      if (!selectionInfo) {
+        lastSelectionText = "";
+        lastSelectionRect = null;
+        if (widget.isTriggerVisible()) {
+          widget.hideFloatingTrigger();
+        }
+        return;
+      }
+
+      lastSelectionText = selectionInfo.text;
+      lastSelectionRect = selectionInfo.rect;
+
+      if (!showSelectionIcon || widget.isModalOpen() || selectionInfo.isInsideEditable) {
+        if (!showSelectionIcon && widget.isTriggerVisible()) {
+          widget.hideFloatingTrigger();
+        }
+        return;
+      }
+
+      widget.showFloatingTrigger(selectionInfo.rect);
+    }, 15);
+  }
+
+  document.addEventListener("mouseup", evaluateSelectionAndShowTrigger, true);
+
+  document.addEventListener("selectionchange", () => {
+    const selectionInfo = extractActiveSelectionInfo();
+    if (!selectionInfo) {
+      lastSelectionText = "";
+      lastSelectionRect = null;
+      if (widget.isTriggerVisible()) {
+        widget.hideFloatingTrigger();
+      }
+    }
+  });
+
+  document.addEventListener("keyup", (event) => {
+    if (event.key === "Escape") {
+      return;
+    }
+    if (event.shiftKey || event.key.startsWith("Arrow")) {
+      evaluateSelectionAndShowTrigger(event);
+    }
+  }, true);
+
+  document.addEventListener("mousedown", (event) => {
+    if (widget.isEventInsideWidget(event)) {
+      return;
+    }
+
+    if (widget.isModalOpen() || widget.isTriggerVisible()) {
+      widget.hideAll();
+    }
+  }, true);
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && (widget.isModalOpen() || widget.isTriggerVisible())) {
+      widget.hideAll();
+    }
+  }, true);
+
+  if (typeof browser !== "undefined" && browser.runtime && browser.runtime.onMessage) {
+    browser.runtime.onMessage.addListener((message) => {
+      if (!message || typeof message.type !== "string") {
+        return undefined;
+      }
+
+      if (message.type === MESSAGE_TYPES.PING_CONTENT_SCRIPT) {
+        return Promise.resolve({ alive: true });
+      }
+
+      if (message.type === MESSAGE_TYPES.CLOSE_IN_PAGE_MODAL) {
+        widget.hideAll();
+        return Promise.resolve({ ok: true });
+      }
+
+      if (message.type === MESSAGE_TYPES.TRIGGER_SHORTCUT_MODAL) {
+        if (widget.isModalOpen()) {
+          widget.hideAll();
+          return Promise.resolve({ ok: true, mode: "closed" });
+        }
+
+        const selectionInfo = extractActiveSelectionInfo();
+        const textToTranslate = selectionInfo?.text || "";
+
+        if (textToTranslate) {
+          lastSelectionText = textToTranslate;
+          widget.openCenteredModal({
+            initialText: textToTranslate,
+            focusInput: false
+          });
+          return Promise.resolve({ ok: true, mode: "selection" });
+        }
+
+        widget.openCenteredModal({
+          initialText: "",
+          focusInput: true
+        });
+        return Promise.resolve({ ok: true, mode: "free-input" });
+      }
+
+      if (message.type === MESSAGE_TYPES.OPEN_MODAL_WITH_TEXT) {
+        const providedText = typeof message.payload?.text === "string"
+          ? message.payload.text.trim()
+          : "";
+        const fallbackSelection = extractActiveSelectionInfo()?.text || "";
+        const finalText = providedText || fallbackSelection;
+
+        widget.openCenteredModal({
+          initialText: finalText,
+          focusInput: !finalText
+        });
+        return Promise.resolve({ ok: true });
+      }
+
+      if (message.type === MESSAGE_TYPES.GET_ACTIVE_SELECTION) {
+        const selectionInfo = extractActiveSelectionInfo();
+        return Promise.resolve({
+          text: selectionInfo ? selectionInfo.text : ""
+        });
+      }
+
+      return undefined;
+    });
+  }
+
+  initSelectionIconPreference();
+})(typeof globalThis !== "undefined" ? globalThis : window);
