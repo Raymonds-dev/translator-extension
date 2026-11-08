@@ -8,6 +8,14 @@
 
 **Input**: User description: "Features novas: Histórico (até 20 traduções no painel lateral, modal e pop-up, copiar novamente, editar tradução no texto livre via ícone de lápis, limpar histórico); Mover modal (arrastar modal centralizado, salvar posição, resetar para o centro, respeitar área da tela); Novas fontes de API de tradução gratuitas (LibreTranslate, MyMemory Translation API, Lingva Translate, com descrição, limitações, logo com fallback para nome e seletor personalizado animado); Opções Offline (tradução local no navegador via modelo de IA em processo isolado, barra de progresso de download 'Baixando pacote de tradução: 45%...', aviso de tamanho 40-80 MB e consumo de 200-500 MB de RAM)."
 
+## Clarifications
+
+### Session 2026-11-08
+
+- Q: Qual fonte de tradução deve vir ativa por padrão quando o usuário instala a extensão (ou ainda não cadastrou uma chave pessoal do Google)? (FR-010) → A: Lingva Translate por padrão (mantendo Google Tradutor Oficial caso o usuário já possua uma chave pessoal salva).
+- Q: Ao clicar no ícone de lápis de um item do histórico para editar a tradução na aba de texto livre, como os idiomas de origem e destino devem ser configurados? (FR-003) → A: Inverter o par de idiomas do item (o idioma da tradução passa a ser a origem e o idioma original passa a ser o destino).
+- Q: Quando uma fonte gratuita online (como Lingva, MyMemory ou LibreTranslate) atingir o limite de uso ou estiver temporariamente fora do ar, o que a extensão deve fazer? (FR-010) → A: Tentar servidores espelho da mesma fonte e, se todos falharem, exibir aviso da limitação com botão de troca rápida de fonte.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Escolha de Fontes de Tradução Gratuitas com Seletor Animado (Priority: P1)
@@ -22,7 +30,7 @@ Como usuário final, quero utilizar a extensão imediatamente sem precisar criar
 
 1. **Given** que o usuário acabou de instalar a extensão ou abriu as Opções sem chave cadastrada, **When** ele seleciona uma fonte gratuita (como MyMemory ou Lingva Translate) no seletor personalizado animado, **Then** a fonte escolhida torna-se ativa com confirmação visual imediata e permite traduzir textos em qualquer interface da extensão sem exigir chave de acesso.
 2. **Given** que o usuário abre o seletor personalizado de fontes nas Opções, **When** ele navega pelas opções disponíveis (MyMemory, Lingva Translate, LibreTranslate, Google Tradutor e Tradução Offline), **Then** cada opção exibe sua logo (ou um emblema estilizado com o nome caso a imagem não esteja disponível), uma descrição simples em linguagem acessível e avisos claros sobre suas limitações de uso.
-3. **Given** que a fonte gratuita selecionada atinge seu limite de uso ou encontra indisponibilidade temporária, **When** o usuário tenta traduzir um trecho, **Then** a extensão exibe uma mensagem clara explicando a limitação daquela fonte e sugere trocar para outra fonte gratuita nas Opções com um clique.
+3. **Given** que a fonte gratuita selecionada atinge seu limite de uso ou encontra indisponibilidade temporária em todas as suas instâncias espelho, **When** o usuário tenta traduzir um trecho, **Then** a extensão exibe uma mensagem clara explicando a limitação daquela fonte com um botão de ação rápida para alternar de fonte ou abrir o seletor nas Opções com um clique.
 
 ---
 
@@ -39,7 +47,7 @@ Como usuário que consulta traduções frequentemente, quero acessar um históri
 1. **Given** que o usuário realizou traduções bem-sucedidas em qualquer interface da extensão, **When** ele abre a seção de Histórico no Pop-up, no Painel Lateral ou no Modal da página, **Then** ele visualiza até as 20 traduções mais recentes ordenadas da mais nova para a mais antiga, exibindo o trecho original, a tradução e os idiomas utilizados.
 2. **Given** que o histórico já possui 20 traduções salvas, **When** uma 21ª tradução diferente é concluída, **Then** a tradução mais antiga é removida automaticamente para manter o limite máximo de 20 itens.
 3. **Given** que o usuário visualiza um item no Histórico, **When** ele clica no botão de copiar daquele item, **Then** o texto traduzido é copiado para a área de transferência e o botão exibe feedback visual imediato ("Copiado").
-4. **Given** que o usuário visualiza um item no Histórico, **When** ele clica no ícone de lápis ("Editar tradução"), **Then** a interface alterna automaticamente para a visão de texto livre, insere a tradução selecionada na caixa de texto de entrada e posiciona o cursor para edição imediata.
+4. **Given** que o usuário visualiza um item no Histórico, **When** ele clica no ícone de lápis ("Editar tradução"), **Then** a interface alterna automaticamente para a visão de texto livre, insere a tradução selecionada na caixa de texto de entrada, define o idioma da tradução como nova origem e o idioma original do item como novo destino, e posiciona o cursor para edição imediata.
 5. **Given** que existem itens salvos no Histórico, **When** o usuário clica na opção "Limpar histórico", **Then** todos os registros são apagados imediatamente e um estado vazio amigável é exibido.
 
 ---
@@ -91,7 +99,7 @@ Como usuário que valoriza privacidade total ou precisa traduzir textos sem depe
 #### Histórico de Traduções
 - **FR-001**: A extensão DEVE manter um histórico local compartilhado das últimas **20 traduções** concluídas com sucesso, acessível tanto no Pop-up quanto no Painel Lateral e no Modal centralizado da página.
 - **FR-002**: Cada item do histórico DEVE exibir o texto de origem, o texto traduzido, o par de idiomas utilizado, um botão para copiar a tradução novamente (com confirmação visual `"Copiado"`) e um botão com ícone de lápis para editar a tradução.
-- **FR-003**: Ao clicar no ícone de lápis de um item do histórico, a interface ativa (Pop-up, Painel Lateral ou Modal) DEVE retornar para a visão principal de tradução livre, preencher a caixa de texto com a tradução daquele item e focar o campo para edição imediata.
+- **FR-003**: Ao clicar no ícone de lápis de um item do histórico, a interface ativa (Pop-up, Painel Lateral ou Modal) DEVE retornar para a visão principal de tradução livre, preencher a caixa de texto com a tradução daquele item, configurar o idioma daquela tradução como origem e o idioma original do item como destino, e focar o campo para edição imediata.
 - **FR-004**: O histórico DEVE permitir que o usuário apague todos os itens salvos através de uma ação "Limpar histórico" com atualização visual imediata.
 - **FR-005**: Quando uma nova tradução for registrada e o histórico já contiver 20 itens, o item mais antigo DEVE ser removido automaticamente; caso a nova tradução tenha o mesmo texto de origem e idioma de destino do item mais recente, o registro existente DEVE apenas ser atualizado no topo sem duplicação.
 
@@ -102,14 +110,14 @@ Como usuário que valoriza privacidade total ou precisa traduzir textos sem depe
 - **FR-009**: O cabeçalho do modal DEVE exibir um botão "Centralizar" (visível ou ativo quando o modal tiver sido movido do centro) que reposiciona o modal imediatamente no centro da tela e limpa a posição personalizada salva.
 
 #### Fontes de Tradução Gratuitas e Seletor Animado
-- **FR-010**: A extensão DEVE suportar cinco fontes de tradução selecionáveis pelo usuário:
-  1. **Lingva Translate** (gratuita, sem necessidade de chave de acesso)
+- **FR-010**: A extensão DEVE suportar cinco fontes de tradução selecionáveis pelo usuário, tendo **Lingva Translate** como fonte padrão inicial (exceto se o usuário já tiver uma chave pessoal do Google salva anteriormente):
+  1. **Lingva Translate** (gratuita, padrão inicial, sem necessidade de chave de acesso)
   2. **MyMemory** (gratuita, sem necessidade de chave de acesso)
   3. **LibreTranslate** (código aberto, com suporte a servidor público configurável e chave opcional)
   4. **Google Tradutor (Chave Pessoal)** (uso com chave pessoal do Google Cloud)
   5. **Tradução Offline (IA no Navegador)** (processamento local no navegador)
 - **FR-011**: A página de Opções DEVE apresentar um seletor personalizado e animado para escolha da fonte de tradução, exibindo para cada opção: logotipo visual (com fallback automático para emblema com o nome), descrição curta em linguagem simples e etiquetas claras com as limitações de cada serviço.
-- **FR-012**: O campo de Chave de Acesso do Google só DEVE ser exigido quando a fonte selecionada for "Google Tradutor (Chave Pessoal)"; ao selecionar fontes gratuitas sem chave (como Lingva ou MyMemory), o usuário DEVE conseguir traduzir imediatamente sem configurar credenciais.
+- **FR-012**: O campo de Chave de Acesso do Google só DEVE ser exigido quando a fonte selecionada for "Google Tradutor (Chave Pessoal)"; ao selecionar fontes gratuitas sem chave (como Lingva ou MyMemory), o usuário DEVE conseguir traduzir imediatamente sem configurar credenciais. Quando uma fonte gratuita baseada em servidores comunitários (Lingva ou LibreTranslate) falhar, o sistema DEVE tentar automaticamente servidores espelho da mesma fonte antes de exibir o aviso de indisponibilidade/limite acompanhado de um botão de troca rápida.
 
 #### Tradução Offline no Navegador
 - **FR-013**: A opção de Tradução Offline DEVE ser executada em um processo isolado em segundo plano para garantir que a interface do navegador e as páginas visitadas nunca travem durante o carregamento ou execução do modelo de tradução.
@@ -135,7 +143,7 @@ Como usuário que valoriza privacidade total ou precisa traduzir textos sem depe
 
 ## Assumptions
 
-- **Fonte padrão para uso imediato**: Caso o usuário ainda não tenha configurado uma chave pessoal do Google, a extensão pode oferecer uma fonte gratuita sem chave (como Lingva Translate ou MyMemory) pronta para uso imediato ou selecionável com um clique, preservando a chave do Google caso o usuário já a tenha salvo anteriormente.
+- **Fonte padrão para uso imediato**: **Lingva Translate** vem pré-selecionado por padrão em novas instalações para permitir tradução imediata sem configuração; se o usuário já possuir uma chave pessoal do Google salva de uso anterior, a fonte **Google Tradutor (Chave Pessoal)** permanece selecionada.
 - **Persistência local do histórico**: O histórico das 20 traduções é salvo localmente apenas no navegador do usuário, respeitando a privacidade e funcionando mesmo sem conexão com a internet.
 - **Instâncias públicas das APIs gratuitas**: Para Lingva Translate e LibreTranslate, a extensão utilizará endpoints públicos confiáveis por padrão com fallback automático ou possibilidade de personalização simples caso uma instância comunitária esteja ocupada.
 - **Escopo de idiomas no Modo Offline**: O modo Offline utilizará modelos compactos quantizados compatíveis com execução no navegador para os pares de idiomas principais suportados pela extensão, exibindo aviso amigável caso um par específico não possua modelo local compacto disponível.
