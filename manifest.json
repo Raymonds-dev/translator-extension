@@ -1,0 +1,94 @@
+{
+  "manifest_version": 2,
+  "name": "Tradutor Rápido",
+  "version": "1.3.0",
+  "description": "Consulte traduções de palavras e frases selecionadas rapidamente sem sair da página.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "contextual-quick-translator@extension.local",
+      "strict_min_version": "109.0"
+    }
+  },
+  "icons": {
+    "16": "assets/icons/icon-16.svg",
+    "48": "assets/icons/icon-48.svg",
+    "128": "assets/icons/icon-128.svg"
+  },
+  "permissions": [
+    "<all_urls>",
+    "storage",
+    "activeTab",
+    "contextMenus",
+    "tabs"
+  ],
+  "background": {
+    "scripts": [
+      "src/shared/constants.js",
+      "src/shared/languages.js",
+      "src/shared/storage.js",
+      "src/background/api-client.js",
+      "src/background/background.js"
+    ]
+  },
+  "browser_action": {
+    "default_icon": {
+      "16": "assets/icons/icon-16.svg",
+      "48": "assets/icons/icon-48.svg"
+    },
+    "default_title": "Tradutor Rápido",
+    "default_popup": "src/popup/popup.html"
+  },
+  "sidebar_action": {
+    "default_title": "Tradutor Rápido",
+    "default_panel": "src/popup/popup.html?view=sidebar",
+    "default_icon": "assets/icons/icon-48.svg",
+    "open_at_install": false
+  },
+  "options_ui": {
+    "page": "src/options/options.html",
+    "open_in_tab": true
+  },
+  "commands": {
+    "_execute_browser_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y",
+        "linux": "Ctrl+Shift+U"
+      },
+      "description": "Abrir o pop-up do tradutor"
+    },
+    "_execute_sidebar_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+T",
+        "linux": "Alt+Shift+T"
+      },
+      "description": "Abrir ou fechar o painel lateral do tradutor"
+    },
+    "translate-selection": {
+      "suggested_key": {
+        "default": "Alt+T"
+      },
+      "description": "Abrir ou fechar o modal centralizado de tradução"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/shared/constants.js",
+        "src/shared/languages.js",
+        "src/content/widget-styles.js",
+        "src/content/translator-widget.js",
+        "src/content/content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    "src/content/widget.css",
+    "assets/icons/icon-16.svg",
+    "assets/icons/icon-48.svg"
+  ]
+}

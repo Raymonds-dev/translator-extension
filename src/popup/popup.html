@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tradutor Rápido</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body data-theme="dark">
+  <main class="popup-container">
+    <header class="brand-bar">
+      <div class="brand-title-group">
+        <img src="../../assets/icons/icon-16.svg" alt="Ícone" class="brand-mini-icon">
+        <span class="brand-title">Tradutor Rápido</span>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="icon-btn" id="themeToggleBtn" title="Alternar tema claro ou escuro" aria-label="Alternar tema">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+        <button type="button" class="icon-btn" id="openSettingsHeaderBtn" title="Opções" aria-label="Opções">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="popup-header">
+      <div class="lang-bar">
+        <span class="source-lang-badge" id="sourceLangBadge" title="Idioma identificado">Detectar idioma</span>
+        <button type="button" class="switch-btn" id="switchLanguagesBtn" title="Inverter idiomas e editar tradução">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 16V4M7 4L3 8M7 4L11 8"/>
+            <path d="M17 8V20M17 20L21 16M17 20L13 16"/>
+          </svg>
+        </button>
+        <select class="target-lang-select" id="targetLangSelect" title="Mudar idioma desta tradução"></select>
+      </div>
+    </div>
+
+    <div class="popup-body">
+      <div class="input-section">
+        <span class="section-label">Texto</span>
+        <textarea
+          class="source-input"
+          id="sourceInput"
+          placeholder="Digite um texto em qualquer idioma para traduzir..."
+          rows="4"
+          autocomplete="off"
+          autofocus
+        ></textarea>
+        <div class="input-meta">
+          <span id="tempSessionIndicator"></span>
+          <span class="char-counter" id="charCounter">0 / 2000</span>
+        </div>
+      </div>
+
+      <div class="status-banner hidden" id="statusBanner">
+        <span id="statusBannerText"></span>
+        <button type="button" class="action-btn hidden" id="statusActionBtn"></button>
+      </div>
+
+      <div class="result-section">
+        <div class="result-header">
+          <span class="section-label">TRADUÇÃO</span>
+          <button type="button" class="copy-header-btn hidden" id="copyBtn" title="Copiar tradução">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Copiar</span>
+          </button>
+        </div>
+        <div class="translated-output placeholder" id="translatedOutput">A tradução aparecerá aqui...</div>
+        <span class="temp-lang-hint" id="detectedHint"></span>
+      </div>
+    </div>
+  </main>
+
+  <script src="../shared/constants.js"></script>
+  <script src="../shared/languages.js"></script>
+  <script src="../shared/storage.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

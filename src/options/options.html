@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Opções — Tradutor Rápido</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body data-theme="dark">
+  <main class="options-container">
+    <header class="page-header">
+      <div class="brand-row">
+        <img src="../../assets/icons/icon-48.svg" alt="Ícone da Extensão" class="brand-icon">
+        <div>
+          <h1>Tradutor Rápido</h1>
+          <p class="subtitle">
+            Consulte traduções de palavras e frases selecionadas rapidamente, sem sair da página que você está lendo.
+          </p>
+        </div>
+      </div>
+      <div class="header-buttons">
+        <button type="button" id="openWelcomeBtn" class="secondary-btn">
+          Como funciona
+        </button>
+        <button type="button" id="themeToggleBtn" class="secondary-btn">
+          Alternar tema
+        </button>
+      </div>
+    </header>
+
+    <form id="optionsForm" class="options-card" novalidate>
+      <!-- Seção 1: Chave de Acesso -->
+      <section class="form-section">
+        <div class="section-header">
+          <h2>1. Chave de Acesso do Google</h2>
+          <a
+            id="googleCloudLink"
+            href="https://console.cloud.google.com/apis/credentials"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="external-link"
+          >
+            Criar chave no Google Cloud ↗
+          </a>
+        </div>
+        <p class="field-description">
+          Cole aqui sua chave pessoal do Google Tradutor. Ela fica guardada com segurança apenas neste navegador.
+        </p>
+
+        <div class="password-input-group">
+          <input
+            type="password"
+            id="apiKeyInput"
+            class="text-input"
+            placeholder="Cole sua chave aqui"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <button type="button" id="togglePasswordBtn" class="secondary-btn">
+            Mostrar
+          </button>
+        </div>
+      </section>
+
+      <hr class="divider">
+
+      <!-- Seção 2: Idioma Mãe -->
+      <section class="form-section">
+        <h2>2. Idioma Mãe</h2>
+        <p class="field-description">
+          Escolha sua língua principal. Todos os textos selecionados serão traduzidos automaticamente para o seu Idioma Mãe, e quando você escrever no seu próprio Idioma Mãe a extensão traduzirá para outro idioma.
+        </p>
+        <select id="baseLanguageSelect" class="select-input"></select>
+      </section>
+
+      <hr class="divider">
+
+      <!-- Seção 3: Aparência e Comportamento -->
+      <section class="form-section">
+        <h2>3. Aparência e Comportamento</h2>
+        <p class="field-description">
+          Escolha entre o visual escuro ou claro, ajuste a transparência do modal centralizado e defina se o ícone deve aparecer ao selecionar palavras na página.
+        </p>
+
+        <div class="appearance-grid">
+          <div class="appearance-field">
+            <label for="themeSelect" class="field-label">Esquema de cores</label>
+            <select id="themeSelect" class="select-input">
+              <option value="dark">Escuro</option>
+              <option value="light">Claro</option>
+            </select>
+          </div>
+
+          <div class="appearance-field">
+            <div class="slider-header">
+              <label for="modalOpacityInput" class="field-label">Opacidade do modal centralizado</label>
+              <span id="modalOpacityValue" class="slider-value">88%</span>
+            </div>
+            <input
+              type="range"
+              id="modalOpacityInput"
+              class="range-input"
+              min="65"
+              max="100"
+              value="88"
+            >
+          </div>
+        </div>
+
+        <label class="toggle-row" for="showSelectionIconInput">
+          <div class="toggle-text">
+            <span class="toggle-title">Mostrar ícone ao selecionar texto na página</span>
+            <span class="toggle-subtitle">
+              Quando desativado, o ícone flutuante não aparece ao selecionar palavras, mas você continua podendo traduzir pelo atalho ou pelo botão direito do mouse.
+            </span>
+          </div>
+          <input
+            type="checkbox"
+            id="showSelectionIconInput"
+            class="toggle-checkbox"
+            checked
+          >
+        </label>
+      </section>
+
+      <hr class="divider">
+
+      <!-- Seção 4: Atalhos do Teclado -->
+      <section class="form-section">
+        <h2>4. Atalhos do Teclado</h2>
+        <p class="field-description">
+          Clique em qualquer um dos campos abaixo e pressione a combinação de teclas desejada. Os atalhos configurados aqui ficam sincronizados com os atalhos do navegador.
+        </p>
+
+        <div class="shortcuts-grid">
+          <div class="shortcut-card">
+            <div class="section-header">
+              <label for="shortcutInput" class="field-label">Modal Centralizado e Tradução Rápida</label>
+              <button type="button" id="resetShortcutBtn" class="link-btn">Restaurar Alt+T</button>
+            </div>
+            <p class="shortcut-help">
+              Abre e fecha o modal centralizado na página ou traduz o texto selecionado na hora.
+            </p>
+            <input
+              type="text"
+              id="shortcutInput"
+              class="text-input"
+              placeholder="Pressione as teclas, como Alt+T"
+              value="Alt+T"
+            >
+          </div>
+
+          <div class="shortcut-card">
+            <div class="section-header">
+              <label for="sidebarShortcutInput" class="field-label">Painel Lateral do Navegador</label>
+              <button type="button" id="resetSidebarShortcutBtn" class="link-btn">Restaurar Alt+Shift+T</button>
+            </div>
+            <p class="shortcut-help">
+              Abre o tradutor no painel lateral nativo do navegador.
+            </p>
+            <input
+              type="text"
+              id="sidebarShortcutInput"
+              class="text-input"
+              placeholder="Pressione as teclas, como Alt+Shift+T"
+              value="Alt+Shift+T"
+            >
+          </div>
+        </div>
+
+        <div class="browser-shortcut-notice">
+          <div class="browser-shortcut-text">
+            <strong>Gerenciador de atalhos do navegador:</strong>
+            Você também pode visualizar ou alterar os atalhos diretamente na página padrão de atalhos de extensões do seu navegador.
+          </div>
+          <button type="button" id="openBrowserShortcutsBtn" class="secondary-btn">
+            Abrir gerenciador de atalhos
+          </button>
+        </div>
+      </section>
+
+      <footer class="form-footer">
+        <span id="saveStatusFeedback" class="save-feedback hidden" role="status"></span>
+        <button type="submit" id="saveOptionsBtn" class="primary-btn">
+          Salvar Opções
+        </button>
+      </footer>
+    </form>
+  </main>
+
+  <script src="../shared/constants.js"></script>
+  <script src="../shared/languages.js"></script>
+  <script src="../shared/storage.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

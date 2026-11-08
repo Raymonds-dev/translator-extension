@@ -1,0 +1,207 @@
+:root,
+body[data-theme="light"] {
+  --bg-page: #F1F5F9;
+  --bg-card: #FFFFFF;
+  --bg-notice: #EFF6FF;
+  --border-card: #E2E8F0;
+  --border-notice: #BFDBFE;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-notice: #1E3A8A;
+  --accent: #2563EB;
+  --accent-hover: #1D4ED8;
+  --step-bg: #DBEAFE;
+  --step-text: #1D4ED8;
+  --shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+}
+
+body[data-theme="dark"] {
+  --bg-page: #0B1120;
+  --bg-card: #1E293B;
+  --bg-notice: rgba(37, 99, 235, 0.16);
+  --border-card: #334155;
+  --border-notice: #3B82F6;
+  --text-primary: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-notice: #DBEAFE;
+  --accent: #3B82F6;
+  --accent-hover: #2563EB;
+  --step-bg: rgba(59, 130, 246, 0.22);
+  --step-text: #93C5FD;
+  --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 32px 16px 48px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  line-height: 1.6;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.welcome-container {
+  max-width: 780px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-logo {
+  width: 40px;
+  height: 40px;
+}
+
+.brand-name {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.theme-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-card);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+
+.theme-btn:hover {
+  border-color: var(--accent);
+}
+
+.hero-card,
+.step-card,
+.cta-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: var(--shadow);
+}
+
+.hero-card h1 {
+  margin: 0 0 10px;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.lead {
+  margin: 0 0 20px;
+  font-size: 16px;
+  color: var(--text-secondary);
+}
+
+.notice-box {
+  background: var(--bg-notice);
+  border: 1px solid var(--border-notice);
+  color: var(--text-notice);
+  padding: 16px 18px;
+  border-radius: 12px;
+}
+
+.notice-box strong {
+  display: block;
+  font-size: 14.5px;
+  margin-bottom: 4px;
+}
+
+.notice-box p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.step-card {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.step-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--step-bg);
+  color: var(--step-text);
+  font-weight: 800;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.step-card h2 {
+  margin: 0;
+  font-size: 16.5px;
+  font-weight: 700;
+}
+
+.step-card p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+}
+
+.cta-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.cta-text h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.cta-text p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.primary-btn {
+  padding: 12px 22px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: #FFFFFF;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 120ms ease;
+}
+
+.primary-btn:hover {
+  background: var(--accent-hover);
+}
