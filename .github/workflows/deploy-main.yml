@@ -1,104 +1,126 @@
-name: Deploy Frontend
+name: Package & Release Extension
 
 on:
   push:
     branches:
       - main
   workflow_dispatch:
-    inputs:
-      build_apk:
-        description: 'Compilar APK do Android?'
-        required: true
-        type: boolean
-        default: false
+
+permissions:
+  contents: write
 
 concurrency:
-  group: deploy-frontend-main
+  group: release-extension-main
   cancel-in-progress: true
 
 jobs:
-  # ========================================================
-  # JOB 1: Build da Web (Executado imediatamente nos runners do GitHub)
-  # ========================================================
-  build-web:
-    name: Build Expo Web
+  package-and-release:
+    name: Empacotar e Publicar Extensão (WebExtension)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 22 (LTS)
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
+      - name: Ler versão do manifest.json e empacotar extensão (.zip e .xpi)
+        id: package
+        run: |
+          VERSION=$(jq -r '.version' manifest.json)
+          NAME="tradutor-rapido-v${VERSION}"
+          mkdir -p dist
 
-      - name: Instalar dependências
-        run: npm ci --legacy-peer-deps
+          zip -r "dist/${NAME}.zip" manifest.json assets/ src/
+          cp "dist/${NAME}.zip" "dist/${NAME}.xpi"
 
-      - name: Compilar Web
-        run: bash scripts/build-web.sh
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "zip_path=dist/${NAME}.zip" >> "$GITHUB_OUTPUT"
+          echo "xpi_path=dist/${NAME}.xpi" >> "$GITHUB_OUTPUT"
+          echo "zip_name=${NAME}.zip" >> "$GITHUB_OUTPUT"
+          echo "xpi_name=${NAME}.xpi" >> "$GITHUB_OUTPUT"
 
-      - name: Salvar artefato Web
+      - name: Publicar pacotes como artefatos do Workflow
         uses: actions/upload-artifact@v4
         with:
-          name: web-dist
-          path: dist/
-          retention-days: 1
+          name: tradutor-rapido-v${{ steps.package.outputs.version }}
+          path: |
+            ${{ steps.package.outputs.zip_path }}
+            ${{ steps.package.outputs.xpi_path }}
+          retention-days: 30
 
-  # ========================================================
-  # JOB 2: Build do APK Android (EAS Local na VPS)
-  # ========================================================
-  build-apk:
-    name: Build APK Android (VPS Local)
-    # Dispara se houver [build-apk] ou [apk] no commit do merge ou se acionado manualmente com build_apk=true
-    if: ${{ contains(github.event.head_commit.message, '[build-apk]') || contains(github.event.head_commit.message, '[apk]') || inputs.build_apk == true }}
-    runs-on: [self-hosted, frontend]
-    steps:
-      - name: Checkout do código
-        uses: actions/checkout@v4
-
-      - name: Instalar dependências
-        run: npm ci --legacy-peer-deps
-
-      - name: Compilar APK via EAS Local
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          ANDROID_HOME: /opt/android-sdk
-        run: bash scripts/build-apk.sh ./collectto.apk
-
-      - name: Salvar artefato APK
-        uses: actions/upload-artifact@v4
+      - name: Criar ou atualizar GitHub Release com os pacotes da extensão
+        uses: actions/github-script@v7
         with:
-          name: android-apk
-          path: ./collectto.apk
-          retention-days: 7
+          github-token: ${{ secrets.GH_PAT || github.token }}
+          script: |
+            const fs = require('fs');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const version = '${{ steps.package.outputs.version }}';
+            const tag = `v${version}`;
+            const zipPath = '${{ steps.package.outputs.zip_path }}';
+            const xpiPath = '${{ steps.package.outputs.xpi_path }}';
+            const zipName = '${{ steps.package.outputs.zip_name }}';
+            const xpiName = '${{ steps.package.outputs.xpi_name }}';
 
-  # ========================================================
-  # JOB 3: Publicação na VPS (Zero compilação na VPS)
-  # ========================================================
-  deploy-vps:
-    name: Publicação na VPS
-    needs: [build-web, build-apk]
-    if: always() && needs.build-web.result == 'success' && (needs.build-apk.result == 'success' || needs.build-apk.result == 'skipped')
-    runs-on: [self-hosted, frontend]
-    steps:
-      - name: Checkout do código (para acessar scripts)
-        uses: actions/checkout@v4
+            let release;
+            try {
+              const existing = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
+              release = existing.data;
+              core.info(`Release ${tag} já existe (#${release.id}). Atualizando artefatos...`);
+            } catch (err) {
+              if (err.status === 404) {
+                const created = await github.rest.repos.createRelease({
+                  owner,
+                  repo,
+                  tag_name: tag,
+                  target_commitish: context.sha,
+                  name: `Tradutor Rápido v${version}`,
+                  body: [
+                    `## Tradutor Rápido v${version}`,
+                    '',
+                    'Pacotes prontos para instalação em navegadores baseados em Gecko (Firefox, Zen Browser) e Chromium:',
+                    `- **\`${xpiName}\`**: Pacote de extensão para Firefox / Zen Browser`,
+                    `- **\`${zipName}\`**: Pacote compactado padrão da WebExtension`
+                  ].join('\n'),
+                  draft: false,
+                  prerelease: false,
+                });
+                release = created.data;
+                core.info(`Release ${tag} criada com sucesso (#${release.id}).`);
+              } else {
+                throw err;
+              }
+            }
 
-      - name: Baixar artefato da Web
-        uses: actions/download-artifact@v4
-        with:
-          name: web-dist
-          path: ./dist
+            const existingAssets = await github.rest.repos.listReleaseAssets({
+              owner,
+              repo,
+              release_id: release.id,
+            });
 
-      - name: Baixar artefato do APK (se gerado)
-        if: needs.build-apk.result == 'success'
-        uses: actions/download-artifact@v4
-        with:
-          name: android-apk
-          path: ./apk-artifact
+            for (const asset of existingAssets.data) {
+              if (asset.name === zipName || asset.name === xpiName) {
+                await github.rest.repos.deleteReleaseAsset({
+                  owner,
+                  repo,
+                  asset_id: asset.id,
+                });
+              }
+            }
 
-      - name: Publicar artefatos na VPS
-        shell: bash
-        run: bash scripts/publish.sh ./dist ./apk-artifact
+            for (const [filePath, fileName, contentType] of [
+              [zipPath, zipName, 'application/zip'],
+              [xpiPath, xpiName, 'application/x-xpinstall']
+            ]) {
+              await github.rest.repos.uploadReleaseAsset({
+                owner,
+                repo,
+                release_id: release.id,
+                name: fileName,
+                data: fs.readFileSync(filePath),
+                headers: {
+                  'content-type': contentType,
+                  'content-length': fs.statSync(filePath).size,
+                },
+              });
+              core.info(`Uploaded asset: ${fileName}`);
+            }
