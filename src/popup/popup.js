@@ -42,6 +42,14 @@
     <span>Editar</span>
   `;
 
+  function setElementHtmlSafe(targetElement, htmlString) {
+    targetElement.replaceChildren();
+    const doc = new DOMParser().parseFromString(htmlString.trim(), "text/html");
+    while (doc.body.firstChild) {
+      targetElement.appendChild(document.importNode(doc.body.firstChild, true));
+    }
+  }
+
   const urlParams = new URLSearchParams(window.location.search);
   const isSidebarView = urlParams.get("view") === "sidebar";
 
@@ -105,7 +113,7 @@
   }
 
   function populateProviderSelect() {
-    elements.quickProviderSelect.innerHTML = "";
+    elements.quickProviderSelect.replaceChildren();
     for (const provider of PROVIDER_CATALOG) {
       const optionEl = document.createElement("option");
       optionEl.value = provider.id;
@@ -123,7 +131,7 @@
   }
 
   function populateTargetLanguageSelect() {
-    elements.targetLangSelect.innerHTML = "";
+    elements.targetLangSelect.replaceChildren();
     for (const language of SUPPORTED_LANGUAGES) {
       const optionEl = document.createElement("option");
       optionEl.value = language.code;
@@ -158,7 +166,7 @@
     const count = historyItems.length;
     elements.historyCountLabel.textContent = `Últimas traduções (${count}/${LIMITS.MAX_HISTORY_ITEMS})`;
     resetClearHistoryConfirmation();
-    elements.historyList.innerHTML = "";
+    elements.historyList.replaceChildren();
 
     if (count === 0) {
       const emptyEl = document.createElement("div");
@@ -187,7 +195,7 @@
       editBtn.type = "button";
       editBtn.className = "history-item-btn";
       editBtn.title = "Mover tradução para o texto livre para editar";
-      editBtn.innerHTML = PENCIL_ICON_SVG;
+      setElementHtmlSafe(editBtn, PENCIL_ICON_SVG);
       editBtn.addEventListener("click", () => {
         handleEditHistoryItem(item);
       });
@@ -196,14 +204,14 @@
       copyItemBtn.type = "button";
       copyItemBtn.className = "history-item-btn";
       copyItemBtn.title = "Copiar tradução novamente";
-      copyItemBtn.innerHTML = COPY_ICON_SVG;
+      setElementHtmlSafe(copyItemBtn, COPY_ICON_SVG);
       copyItemBtn.addEventListener("click", async () => {
         try {
           await navigator.clipboard.writeText(item.translatedText);
-          copyItemBtn.innerHTML = COPIED_ICON_SVG;
+          setElementHtmlSafe(copyItemBtn, COPIED_ICON_SVG);
           copyItemBtn.classList.add("copied");
           setTimeout(() => {
-            copyItemBtn.innerHTML = COPY_ICON_SVG;
+            setElementHtmlSafe(copyItemBtn, COPY_ICON_SVG);
             copyItemBtn.classList.remove("copied");
           }, LIMITS.COPY_FEEDBACK_DURATION_MS);
         } catch (_err) {
@@ -576,11 +584,11 @@
 
     try {
       await navigator.clipboard.writeText(session.translatedText);
-      elements.copyBtn.innerHTML = COPIED_ICON_SVG;
+      setElementHtmlSafe(elements.copyBtn, COPIED_ICON_SVG);
       elements.copyBtn.classList.add("copied");
       clearTimeout(copyFeedbackTimer);
       copyFeedbackTimer = setTimeout(() => {
-        elements.copyBtn.innerHTML = COPY_ICON_SVG;
+        setElementHtmlSafe(elements.copyBtn, COPY_ICON_SVG);
         elements.copyBtn.classList.remove("copied");
       }, LIMITS.COPY_FEEDBACK_DURATION_MS);
     } catch (_error) {

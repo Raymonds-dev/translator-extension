@@ -43,6 +43,23 @@
     <span>Editar</span>
   `;
 
+  function setElementHtmlSafe(targetElement, htmlString) {
+    targetElement.replaceChildren();
+    const doc = new DOMParser().parseFromString(htmlString.trim(), "text/html");
+    while (doc.body.firstChild) {
+      targetElement.appendChild(document.importNode(doc.body.firstChild, true));
+    }
+  }
+
+  function setElementSvg(targetElement, svgString) {
+    targetElement.replaceChildren();
+    const doc = new DOMParser().parseFromString(svgString.trim(), "image/svg+xml");
+    const svg = doc.documentElement;
+    if (svg && svg.nodeName.toLowerCase() === "svg") {
+      targetElement.appendChild(document.importNode(svg, true));
+    }
+  }
+
   class TranslatorWidget {
     constructor() {
       this.hostElement = null;
@@ -200,7 +217,7 @@
       wrapper.className = "widget-theme-root";
       wrapper.setAttribute("data-theme", this.theme);
       wrapper.style.setProperty("--modal-alpha", String(this.modalOpacity));
-      wrapper.innerHTML = this.buildWidgetTemplate();
+      setElementHtmlSafe(wrapper, this.buildWidgetTemplate());
 
       this.shadowRoot.appendChild(styleElement);
       this.shadowRoot.appendChild(wrapper);
@@ -427,7 +444,7 @@
       if (!selectEl) {
         return;
       }
-      selectEl.innerHTML = "";
+      selectEl.replaceChildren();
       for (const provider of PROVIDER_CATALOG) {
         const optionEl = document.createElement("option");
         optionEl.value = provider.id;
@@ -575,7 +592,7 @@
       const count = this.historyItems.length;
       this.elements.historyCountLabel.textContent = `Últimas traduções (${count}/${LIMITS.MAX_HISTORY_ITEMS})`;
       this.resetClearHistoryConfirmation();
-      this.elements.historyList.innerHTML = "";
+      this.elements.historyList.replaceChildren();
 
       if (count === 0) {
         const emptyEl = document.createElement("div");
@@ -604,7 +621,7 @@
         editBtn.type = "button";
         editBtn.className = "history-item-btn";
         editBtn.title = "Mover tradução para o texto livre para editar";
-        editBtn.innerHTML = PENCIL_ICON_SVG;
+        setElementHtmlSafe(editBtn, PENCIL_ICON_SVG);
         editBtn.addEventListener("click", () => {
           this.handleEditHistoryItem(item);
         });
@@ -613,14 +630,14 @@
         copyItemBtn.type = "button";
         copyItemBtn.className = "history-item-btn";
         copyItemBtn.title = "Copiar tradução novamente";
-        copyItemBtn.innerHTML = COPY_ICON_SVG;
+        setElementHtmlSafe(copyItemBtn, COPY_ICON_SVG);
         copyItemBtn.addEventListener("click", async () => {
           try {
             await navigator.clipboard.writeText(item.translatedText);
-            copyItemBtn.innerHTML = COPIED_ICON_SVG;
+            setElementHtmlSafe(copyItemBtn, COPIED_ICON_SVG);
             copyItemBtn.classList.add("copied");
             setTimeout(() => {
-              copyItemBtn.innerHTML = COPY_ICON_SVG;
+              setElementHtmlSafe(copyItemBtn, COPY_ICON_SVG);
               copyItemBtn.classList.remove("copied");
             }, LIMITS.COPY_FEEDBACK_DURATION_MS);
           } catch (_err) {
@@ -680,7 +697,7 @@
         return;
       }
 
-      selectEl.innerHTML = "";
+      selectEl.replaceChildren();
       for (const language of SUPPORTED_LANGUAGES) {
         const optionEl = document.createElement("option");
         optionEl.value = language.code;
@@ -1217,11 +1234,11 @@
       try {
         await navigator.clipboard.writeText(this.session.translatedText);
         const copyBtn = this.elements.copyBtn;
-        copyBtn.innerHTML = COPIED_ICON_SVG;
+        setElementHtmlSafe(copyBtn, COPIED_ICON_SVG);
         copyBtn.classList.add("copied");
         clearTimeout(this.copyFeedbackTimer);
         this.copyFeedbackTimer = setTimeout(() => {
-          copyBtn.innerHTML = COPY_ICON_SVG;
+          setElementHtmlSafe(copyBtn, COPY_ICON_SVG);
           copyBtn.classList.remove("copied");
         }, LIMITS.COPY_FEEDBACK_DURATION_MS);
       } catch (_clipboardError) {
