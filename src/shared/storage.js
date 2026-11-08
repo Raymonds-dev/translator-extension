@@ -29,6 +29,18 @@
     );
   }
 
+  function clampTypingDebounceMs(value) {
+    const numeric = Number(value);
+    if (Number.isNaN(numeric)) {
+      return DEFAULTS.TYPING_DEBOUNCE_MS;
+    }
+    const clamped = Math.min(
+      LIMITS.MAX_TYPING_DEBOUNCE_MS,
+      Math.max(LIMITS.MIN_TYPING_DEBOUNCE_MS, Math.round(numeric / 100) * 100)
+    );
+    return clamped;
+  }
+
   function normalizeTheme(themeValue) {
     return themeValue === THEMES.LIGHT ? THEMES.LIGHT : THEMES.DARK;
   }
@@ -138,7 +150,10 @@
       [STORAGE_KEYS.OFFLINE_ENGINE_ENABLED]: DEFAULTS.OFFLINE_ENGINE_ENABLED,
       [STORAGE_KEYS.OFFLINE_DOWNLOADED_MODELS]: [],
       [STORAGE_KEYS.BASE_LANGUAGE]: defaultBaseLanguage,
+      [STORAGE_KEYS.SECONDARY_LANGUAGE]: defaultSecondaryLanguage,
       [STORAGE_KEYS.LAST_SECONDARY_LANGUAGE]: defaultSecondaryLanguage,
+      [STORAGE_KEYS.AUTO_TRANSLATE_ON_TYPE]: DEFAULTS.AUTO_TRANSLATE_ON_TYPE,
+      [STORAGE_KEYS.TYPING_DEBOUNCE_MS]: DEFAULTS.TYPING_DEBOUNCE_MS,
       [STORAGE_KEYS.SHORTCUT]: DEFAULTS.SHORTCUT,
       [STORAGE_KEYS.SIDEBAR_SHORTCUT]: DEFAULTS.SIDEBAR_SHORTCUT,
       [STORAGE_KEYS.SHOW_SELECTION_ICON]: DEFAULTS.SHOW_SELECTION_ICON,
@@ -160,7 +175,9 @@
     const storedValues = await storageArea.get(fallbackPreferences);
     const normalizedBase = normalizeLanguageCode(storedValues[STORAGE_KEYS.BASE_LANGUAGE] || defaultBaseLanguage);
     let normalizedSecondary = normalizeLanguageCode(
-      storedValues[STORAGE_KEYS.LAST_SECONDARY_LANGUAGE] || defaultSecondaryLanguage
+      storedValues[STORAGE_KEYS.SECONDARY_LANGUAGE] ||
+      storedValues[STORAGE_KEYS.LAST_SECONDARY_LANGUAGE] ||
+      defaultSecondaryLanguage
     );
 
     if (areSameLanguages(normalizedBase, normalizedSecondary)) {
@@ -206,7 +223,10 @@
         storedValues[STORAGE_KEYS.OFFLINE_DOWNLOADED_MODELS]
       ),
       [STORAGE_KEYS.BASE_LANGUAGE]: normalizedBase,
+      [STORAGE_KEYS.SECONDARY_LANGUAGE]: normalizedSecondary,
       [STORAGE_KEYS.LAST_SECONDARY_LANGUAGE]: normalizedSecondary,
+      [STORAGE_KEYS.AUTO_TRANSLATE_ON_TYPE]: Boolean(storedValues[STORAGE_KEYS.AUTO_TRANSLATE_ON_TYPE]),
+      [STORAGE_KEYS.TYPING_DEBOUNCE_MS]: clampTypingDebounceMs(storedValues[STORAGE_KEYS.TYPING_DEBOUNCE_MS]),
       [STORAGE_KEYS.SHORTCUT]: sanitizedShortcut,
       [STORAGE_KEYS.SIDEBAR_SHORTCUT]: sanitizedSidebarShortcut,
       [STORAGE_KEYS.SHOW_SELECTION_ICON]: showSelectionIcon,
@@ -277,6 +297,18 @@
     if (Object.prototype.hasOwnProperty.call(partialPreferences, STORAGE_KEYS.LAST_SECONDARY_LANGUAGE)) {
       payloadToPersist[STORAGE_KEYS.LAST_SECONDARY_LANGUAGE] = normalizeLanguageCode(
         partialPreferences[STORAGE_KEYS.LAST_SECONDARY_LANGUAGE]
+      );
+    }
+
+    if (Object.prototype.hasOwnProperty.call(partialPreferences, STORAGE_KEYS.AUTO_TRANSLATE_ON_TYPE)) {
+      payloadToPersist[STORAGE_KEYS.AUTO_TRANSLATE_ON_TYPE] = Boolean(
+        partialPreferences[STORAGE_KEYS.AUTO_TRANSLATE_ON_TYPE]
+      );
+    }
+
+    if (Object.prototype.hasOwnProperty.call(partialPreferences, STORAGE_KEYS.TYPING_DEBOUNCE_MS)) {
+      payloadToPersist[STORAGE_KEYS.TYPING_DEBOUNCE_MS] = clampTypingDebounceMs(
+        partialPreferences[STORAGE_KEYS.TYPING_DEBOUNCE_MS]
       );
     }
 
@@ -447,6 +479,7 @@
     clearDownloadedOfflineModels,
     detectBrowserBaseLanguage,
     clampModalOpacity,
+    clampTypingDebounceMs,
     normalizeTheme,
     sanitizeModalPosition
   });

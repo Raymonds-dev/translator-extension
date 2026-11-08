@@ -16,7 +16,8 @@
   const {
     normalizeLanguageCode,
     areSameLanguages,
-    resolveFallbackSecondaryLanguage
+    resolveFallbackSecondaryLanguage,
+    detectLanguageLocally
   } = namespace.Languages;
   const { normalizeProviderId, getNextFreeProviderId } = namespace.Providers;
   const {
@@ -114,10 +115,12 @@
 
   function resolveSecondaryRedirectTarget(preferences) {
     const baseLanguage = preferences[STORAGE_KEYS.BASE_LANGUAGE];
-    const storedSecondary = preferences[STORAGE_KEYS.LAST_SECONDARY_LANGUAGE];
+    const configuredSecondary = preferences[STORAGE_KEYS.SECONDARY_LANGUAGE];
+    const storedLastSecondary = preferences[STORAGE_KEYS.LAST_SECONDARY_LANGUAGE];
 
-    if (storedSecondary && !areSameLanguages(storedSecondary, baseLanguage)) {
-      return normalizeLanguageCode(storedSecondary);
+    const candidate = configuredSecondary || storedLastSecondary;
+    if (candidate && !areSameLanguages(candidate, baseLanguage)) {
+      return normalizeLanguageCode(candidate);
     }
 
     return resolveFallbackSecondaryLanguage(baseLanguage);
@@ -125,12 +128,17 @@
 
   async function handleGetSessionBootstrap() {
     const preferences = await getUserPreferences();
+    const baseLanguage = preferences[STORAGE_KEYS.BASE_LANGUAGE];
+    const secondaryLanguage = resolveSecondaryRedirectTarget(preferences);
     return {
       provider: preferences[STORAGE_KEYS.PROVIDER],
       hasApiKey: Boolean(preferences[STORAGE_KEYS.API_KEY]),
       offlineEngineEnabled: preferences[STORAGE_KEYS.OFFLINE_ENGINE_ENABLED] !== false,
-      baseLanguage: preferences[STORAGE_KEYS.BASE_LANGUAGE],
+      baseLanguage,
+      secondaryLanguage,
       lastSecondaryLanguage: preferences[STORAGE_KEYS.LAST_SECONDARY_LANGUAGE],
+      autoTranslateOnType: Boolean(preferences[STORAGE_KEYS.AUTO_TRANSLATE_ON_TYPE]),
+      typingDebounceMs: preferences[STORAGE_KEYS.TYPING_DEBOUNCE_MS],
       shortcut: preferences[STORAGE_KEYS.SHORTCUT],
       sidebarShortcut: preferences[STORAGE_KEYS.SIDEBAR_SHORTCUT],
       showSelectionIcon: preferences[STORAGE_KEYS.SHOW_SELECTION_ICON],
@@ -225,10 +233,14 @@
     let effectiveTargetLanguage = normalizeLanguageCode(payload?.targetLanguage || baseLanguage);
     let autoRedirected = false;
 
+    // Pré-detecção inteligente de Idioma Mãe
+    const preDetected = requestedSource !== DEFAULTS.AUTO_LANGUAGE
+      ? requestedSource
+      : detectLanguageLocally(trimmedText, baseLanguage, secondaryLanguage);
+
     if (
       allowAutoRedirect &&
-      requestedSource !== DEFAULTS.AUTO_LANGUAGE &&
-      areSameLanguages(requestedSource, baseLanguage) &&
+      areSameLanguages(preDetected, baseLanguage) &&
       areSameLanguages(effectiveTargetLanguage, baseLanguage)
     ) {
       effectiveTargetLanguage = secondaryLanguage;
@@ -242,7 +254,7 @@
       libreTranslateApiKey: preferences[STORAGE_KEYS.LIBRE_TRANSLATE_API_KEY],
       offlineEngineEnabled,
       text: rawText,
-      sourceLanguage: requestedSource,
+      sourceLanguage: autoRedirected ? baseLanguage : requestedSource,
       targetLanguage: effectiveTargetLanguage,
       baseLanguage,
       secondaryLanguage
