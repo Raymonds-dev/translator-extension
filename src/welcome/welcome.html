@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bem-vindo ao Tradutor Rápido</title>
+  <link rel="stylesheet" href="welcome.css">
+</head>
+<body data-theme="dark">
+  <main class="welcome-container">
+    <header class="top-bar">
+      <div class="brand">
+        <img src="../../assets/icons/icon-48.svg" alt="Ícone do Tradutor Rápido" class="brand-logo">
+        <span class="brand-name">Tradutor Rápido</span>
+      </div>
+      <button type="button" id="themeToggleBtn" class="theme-btn" title="Alternar tema claro ou escuro">
+        Alternar tema
+      </button>
+    </header>
+
+    <section class="hero-card">
+      <h1>Bem-vindo ao Tradutor Rápido</h1>
+      <p class="lead">
+        Uma ferramenta simples e leve para você entender e escrever palavras ou frases em outros idiomas sem perder o foco na sua leitura.
+      </p>
+
+      <div class="notice-box">
+        <strong>Importante sobre como funciona</strong>
+        <p>
+          Esta extensão <strong>não traduz páginas inteiras</strong> de uma vez. Ela foi criada especialmente para <strong>consultas rápidas</strong> de palavras, frases ou trechos que você selecionar ou quiser escrever no dia a dia.
+        </p>
+      </div>
+    </section>
+
+    <section class="steps-grid">
+      <article class="step-card">
+        <div class="step-number">1</div>
+        <h2>Selecione qualquer trecho</h2>
+        <p>
+          Ao selecionar uma palavra ou frase em qualquer site, um pequeno ícone azul aparece ao lado do texto. Basta clicar nele para abrir a tradução no centro da tela.
+        </p>
+      </article>
+
+      <article class="step-card">
+        <div class="step-number">2</div>
+        <h2>Use o atalho rápido</h2>
+        <p>
+          Aperte <strong>Alt + T</strong> com um texto selecionado para traduzir na hora, ou sem selecionar nada para abrir a caixa e digitar o que quiser. Aperte <strong>Alt + T</strong> novamente para fechar.
+        </p>
+      </article>
+
+      <article class="step-card">
+        <div class="step-number">3</div>
+        <h2>Inverta e edite à vontade</h2>
+        <p>
+          Quer responder em outra língua? Clique no botão de inverter idiomas para mandar a frase traduzida para a caixa de texto, edite como preferir e copie com um clique.
+        </p>
+      </article>
+    </section>
+
+    <section class="cta-card">
+      <div class="cta-text">
+        <h2>Primeiro passo antes de começar</h2>
+        <p>
+          Para ativar as traduções, escolha seu <strong>Idioma Mãe</strong> e adicione sua chave de acesso do Google nas Opções da extensão.
+        </p>
+      </div>
+      <button type="button" id="openOptionsBtn" class="primary-btn">
+        Ir para as Opções
+      </button>
+    </section>
+  </main>
+
+  <script src="../shared/constants.js"></script>
+  <script src="../shared/languages.js"></script>
+  <script src="../shared/storage.js"></script>
+  <script src="welcome.js"></script>
+</body>
+</html>

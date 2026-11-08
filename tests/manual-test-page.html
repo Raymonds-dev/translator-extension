@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Página de Testes — Tradutor Contextual Rápido</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 32px 20px;
+      background: #F8FAFC;
+      color: #0F172A;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #1E3A8A;
+      margin-bottom: 8px;
+    }
+    .card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+    }
+    .badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      background: #EFF6FF;
+      color: #1D4ED8;
+      padding: 2px 8px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #CBD5E1;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    .long-text {
+      max-height: 120px;
+      overflow-y: auto;
+      font-size: 13px;
+      background: #F1F5F9;
+      padding: 12px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Bancada de Testes — Tradutor Contextual Rápido</h1>
+  <p>Selecione qualquer frase abaixo para testar o ícone flutuante (US1) ou pressione <strong>Alt + T</strong> (US2/US4).</p>
+
+  <section class="card">
+    <span class="badge">Inglês (en) → Idioma Base</span>
+    <p>Simplicity is about subtracting the obvious and adding the meaningful. Good software should work without a manual.</p>
+  </section>
+
+  <section class="card">
+    <span class="badge">Espanhol (es) → Idioma Base</span>
+    <p>La usabilidad es la clave para que una herramienta cotidiana se sienta natural y rápida en el navegador.</p>
+  </section>
+
+  <section class="card">
+    <span class="badge">Francês (fr) → Idioma Base</span>
+    <p>La simplicité est la sophistication suprême. Sélectionnez cette phrase pour vérifier la traduction instantanée.</p>
+  </section>
+
+  <section class="card">
+    <span class="badge">Português (pt) → Teste de Redirecionamento Inteligente (Q2)</span>
+    <p>Quando você seleciona um texto que já está no seu próprio idioma mãe, a extensão traduz automaticamente para o seu idioma secundário!</p>
+  </section>
+
+  <section class="card">
+    <span class="badge">Caso de Borda: Campos de Formulário (Input / Textarea)</span>
+    <p>Selecionar dentro de inputs não deve exibir o ícone flutuante sobre o cursor, mas funciona com <strong>Alt + T</strong>:</p>
+    <input type="text" value="Browser extensions improve daily productivity when designed with care.">
+    <textarea rows="2">Selecting text inside a textarea and pressing Alt+T opens the translation modal cleanly.</textarea>
+  </section>
+
+  <section class="card">
+    <span class="badge">Caso de Borda: Limite de 2.000 Caracteres (Proteção de Cota BYOK)</span>
+    <p>Selecione todo o bloco abaixo (possui mais de 2.100 caracteres) para testar o bloqueio preventivo <code>TEXT_TOO_LONG</code>:</p>
+    <div class="long-text" id="longTextBlock"></div>
+  </section>
+
+  <script>
+    const sampleSentence = "This repeated sentence is used to exceed the two thousand character safety threshold for BYOK quota protection. ";
+    document.getElementById("longTextBlock").textContent = sampleSentence.repeat(22);
+  </script>
+</body>
+</html>
