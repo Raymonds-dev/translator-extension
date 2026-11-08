@@ -1,12 +1,17 @@
 {
   "manifest_version": 2,
   "name": "TraduzAí",
-  "version": "2.0.0",
+  "version": "2.0.5",
   "description": "Selecionou, traduziu! Consulte e escreva traduções de palavras e frases rapidamente sem sair da página.",
   "browser_specific_settings": {
     "gecko": {
       "id": "contextual-quick-translator@extension.local",
-      "strict_min_version": "109.0"
+      "strict_min_version": "114.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
     }
   },
   "icons": {
@@ -21,7 +26,7 @@
     "contextMenus",
     "tabs"
   ],
-  "content_security_policy": "script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; object-src 'self'",
+  "content_security_policy": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
   "background": {
     "scripts": [
       "src/shared/constants.js",
@@ -90,6 +95,7 @@
     }
   ],
   "web_accessible_resources": [
+    "assets/vendor/transformers.min.js",
     "src/content/widget.css",
     "assets/icons/icon-16.svg",
     "assets/icons/icon-48.svg",

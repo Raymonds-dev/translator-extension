@@ -22,6 +22,8 @@
   const { recordDownloadedOfflineModel, clearDownloadedOfflineModels } = namespace.Storage;
 
   let offlineWorkerInstance = null;
+  let offlineWorkerIdleTimer = null;
+  const OFFLINE_WORKER_IDLE_TIMEOUT_MS = 90000;
   let offlineRequestCounter = 0;
   const pendingOfflineRequests = new Map();
 
@@ -30,11 +32,33 @@
       return "";
     }
     return text
+      .replace(/&#(\d+);/g, (_match, dec) => {
+        try {
+          return String.fromCodePoint(Number(dec));
+        } catch (_err) {
+          return "";
+        }
+      })
+      .replace(/&#x([0-9a-fA-F]+);/g, (_match, hex) => {
+        try {
+          return String.fromCodePoint(parseInt(hex, 16));
+        } catch (_err) {
+          return "";
+        }
+      })
       .replace(/&quot;/g, "\"")
       .replace(/&#39;/g, "'")
       .replace(/&apos;/g, "'")
       .replace(/&lt;/g, "<")
       .replace(/&gt;/g, ">")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&mdash;/g, "—")
+      .replace(/&ndash;/g, "–")
+      .replace(/&hellip;/g, "…")
+      .replace(/&ldquo;/g, "“")
+      .replace(/&rdquo;/g, "”")
+      .replace(/&lsquo;/g, "‘")
+      .replace(/&rsquo;/g, "’")
       .replace(/&amp;/g, "&");
   }
 
@@ -423,9 +447,8 @@
             areSameLanguages(locallyDetected, tgtCode);
 
           const hasFailedTranslation =
-            (!isSourceSameAsTarget && isExactSame) ||
             (!isSourceSameAsTarget && isSourceMissingOnServer) ||
-            (!isSourceSameAsTarget && isZeroConfidenceFallback && highWordRetention) ||
+            (!isSourceSameAsTarget && isZeroConfidenceFallback && (isExactSame || highWordRetention)) ||
             (!isSourceSameAsTarget && isZeroConfidenceFallback && !serverLanguages?.includes("en"));
 
           if (hasFailedTranslation) {
@@ -540,7 +563,22 @@
     return Boolean(offlineWorkerInstance);
   }
 
+  function scheduleOfflineWorkerIdleTermination() {
+    clearTimeout(offlineWorkerIdleTimer);
+    offlineWorkerIdleTimer = setTimeout(() => {
+      terminateOfflineWorker();
+    }, OFFLINE_WORKER_IDLE_TIMEOUT_MS);
+  }
+
+  function cancelOfflineWorkerIdleTermination() {
+    if (offlineWorkerIdleTimer) {
+      clearTimeout(offlineWorkerIdleTimer);
+      offlineWorkerIdleTimer = null;
+    }
+  }
+
   function terminateOfflineWorker() {
+    cancelOfflineWorkerIdleTermination();
     if (offlineWorkerInstance) {
       try {
         offlineWorkerInstance.terminate();
@@ -562,6 +600,7 @@
   }
 
   function ensureOfflineWorker() {
+    cancelOfflineWorkerIdleTermination();
     if (offlineWorkerInstance) {
       return offlineWorkerInstance;
     }
@@ -604,16 +643,7 @@
     });
 
     offlineWorkerInstance.addEventListener("error", () => {
-      for (const [reqId, resolver] of pendingOfflineRequests.entries()) {
-        pendingOfflineRequests.delete(reqId);
-        resolver({
-          type: "OFFLINE_ERROR",
-          requestId: reqId,
-          ok: false,
-          errorMessage:
-            "Não foi possível iniciar o motor de tradução offline neste navegador. Experimente uma das fontes gratuitas online."
-        });
-      }
+      terminateOfflineWorker();
     });
 
     return offlineWorkerInstance;
@@ -789,8 +819,12 @@
   async function requestTranslationByProvider(options) {
     const provider = options?.provider || DEFAULTS.PROVIDER;
 
-    if (provider !== PROVIDERS.OFFLINE && isOfflineWorkerRunning()) {
-      terminateOfflineWorker();
+    if (provider === PROVIDERS.OFFLINE) {
+      cancelOfflineWorkerIdleTermination();
+    } else if (isOfflineWorkerRunning()) {
+      // Agenda encerramento por inatividade em vez de terminar de imediato,
+      // evitando churn (recriação contínua) caso o MyMemory esteja em modo de fallback.
+      scheduleOfflineWorkerIdleTermination();
     }
 
     if (provider === PROVIDERS.GOOGLE) {

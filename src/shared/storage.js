@@ -369,7 +369,7 @@
     return preferences[STORAGE_KEYS.TRANSLATION_HISTORY] || [];
   }
 
-  async function recordTranslationHistoryEntry(entry) {
+  async function recordTranslationHistoryEntry(entry, options = {}) {
     if (!entry || typeof entry !== "object") {
       return getTranslationHistory();
     }
@@ -396,6 +396,14 @@
       createdAt: now
     };
 
+    const updatePayload = {};
+    if (options && options.secondaryLanguageCandidate) {
+      const candidate = normalizeLanguageCode(options.secondaryLanguageCandidate);
+      if (options.baseLanguage && !areSameLanguages(candidate, options.baseLanguage)) {
+        updatePayload[STORAGE_KEYS.LAST_SECONDARY_LANGUAGE] = candidate;
+      }
+    }
+
     const updatedHistory = [...currentHistory];
 
     if (updatedHistory.length > 0) {
@@ -412,9 +420,8 @@
           ...newRecord,
           id: latest.id
         };
-        await saveUserPreferences({
-          [STORAGE_KEYS.TRANSLATION_HISTORY]: updatedHistory.slice(0, LIMITS.MAX_HISTORY_ITEMS)
-        });
+        updatePayload[STORAGE_KEYS.TRANSLATION_HISTORY] = updatedHistory.slice(0, LIMITS.MAX_HISTORY_ITEMS);
+        await saveUserPreferences(updatePayload);
         return updatedHistory.slice(0, LIMITS.MAX_HISTORY_ITEMS);
       }
     }
@@ -428,9 +435,8 @@
     );
 
     const nextHistory = [newRecord, ...filteredHistory].slice(0, LIMITS.MAX_HISTORY_ITEMS);
-    await saveUserPreferences({
-      [STORAGE_KEYS.TRANSLATION_HISTORY]: nextHistory
-    });
+    updatePayload[STORAGE_KEYS.TRANSLATION_HISTORY] = nextHistory;
+    await saveUserPreferences(updatePayload);
     return nextHistory;
   }
 

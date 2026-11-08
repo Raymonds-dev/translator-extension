@@ -64,6 +64,9 @@
       typeof activeElement.selectionStart === "number" &&
       typeof activeElement.selectionEnd === "number"
     ) {
+      if (activeElement.tagName === "INPUT" && activeElement.type === "password") {
+        return null;
+      }
       const selectedInputSlice = activeElement.value.slice(
         activeElement.selectionStart,
         activeElement.selectionEnd
@@ -90,6 +93,14 @@
       return null;
     }
 
+    const anchorElement = selection.anchorNode?.nodeType === Node.ELEMENT_NODE
+      ? selection.anchorNode
+      : selection.anchorNode?.parentElement;
+
+    if (anchorElement && typeof anchorElement.closest === "function" && anchorElement.closest('input[type="password"]')) {
+      return null;
+    }
+
     const range = selection.getRangeAt(0);
     let rect = range.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) {
@@ -113,10 +124,6 @@
         isInsideEditable: false
       };
     }
-
-    const anchorElement = selection.anchorNode?.nodeType === Node.ELEMENT_NODE
-      ? selection.anchorNode
-      : selection.anchorNode?.parentElement;
 
     return {
       text: trimmedText,
@@ -213,9 +220,26 @@
 
   document.addEventListener("mouseup", evaluateSelectionAndShowTrigger, true);
 
+  // Evita layout thrashing síncrono (getBoundingClientRect) a cada movimento de cursor
   document.addEventListener("selectionchange", () => {
-    const selectionInfo = extractActiveSelectionInfo();
-    if (!selectionInfo) {
+    const activeEl = document.activeElement;
+    const isInput = activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA");
+    let hasActiveSelection = false;
+
+    if (isInput && activeEl.type !== "password") {
+      hasActiveSelection =
+        typeof activeEl.selectionStart === "number" &&
+        typeof activeEl.selectionEnd === "number" &&
+        activeEl.selectionStart !== activeEl.selectionEnd &&
+        Boolean(activeEl.value.slice(activeEl.selectionStart, activeEl.selectionEnd).trim());
+    } else {
+      const sel = window.getSelection();
+      hasActiveSelection = Boolean(
+        sel && sel.rangeCount > 0 && !sel.isCollapsed && sel.toString().trim()
+      );
+    }
+
+    if (!hasActiveSelection) {
       lastSelectionText = "";
       lastSelectionRect = null;
       lastSidebarSentText = "";
@@ -224,6 +248,13 @@
       }
     }
   });
+
+  // Oculta o botão flutuante ao rolar a página para não deixá-lo órfão no ar
+  window.addEventListener("scroll", () => {
+    if (widget.isTriggerVisible()) {
+      widget.hideFloatingTrigger();
+    }
+  }, { passive: true });
 
   document.addEventListener("keyup", (event) => {
     if (event.key === "Escape") {

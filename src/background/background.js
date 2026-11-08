@@ -297,8 +297,12 @@
     const finalDetectedSource = translationResult.data.detectedSourceLanguage ||
       (requestedSource !== DEFAULTS.AUTO_LANGUAGE ? requestedSource : secondaryLanguage);
 
-    await recordSecondaryLanguageIfForeign(finalDetectedSource, baseLanguage);
-    await recordSecondaryLanguageIfForeign(effectiveTargetLanguage, baseLanguage);
+    let secondaryCandidate = null;
+    if (finalDetectedSource && !areSameLanguages(finalDetectedSource, baseLanguage)) {
+      secondaryCandidate = finalDetectedSource;
+    } else if (effectiveTargetLanguage && !areSameLanguages(effectiveTargetLanguage, baseLanguage)) {
+      secondaryCandidate = effectiveTargetLanguage;
+    }
 
     const updatedHistory = await recordTranslationHistoryEntry({
       sourceText: trimmedText,
@@ -306,6 +310,9 @@
       sourceLanguage: finalDetectedSource,
       targetLanguage: effectiveTargetLanguage,
       provider: activeProvider
+    }, {
+      secondaryLanguageCandidate: secondaryCandidate,
+      baseLanguage
     });
 
     return {
@@ -424,11 +431,13 @@
 
     try {
       const allTabs = await browser.tabs.query({});
+      const injectionPromises = [];
       for (const tab of allTabs) {
         if (tab && typeof tab.id === "number" && isInjectableTabUrl(tab.url)) {
-          await ensureContentScriptsInjected(tab.id);
+          injectionPromises.push(ensureContentScriptsInjected(tab.id));
         }
       }
+      await Promise.allSettled(injectionPromises);
     } catch (_queryError) {
       // Ignora erro caso alguma aba esteja inacessível.
     }

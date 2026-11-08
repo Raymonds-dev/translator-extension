@@ -25,6 +25,14 @@
     </svg>
   `;
 
+  function setElementHtmlSafe(targetElement, htmlString) {
+    targetElement.replaceChildren();
+    const doc = new DOMParser().parseFromString(htmlString.trim(), "text/html");
+    for (const node of Array.from(doc.body.childNodes)) {
+      targetElement.appendChild(document.importNode(node, true));
+    }
+  }
+
   const WIZARD_ICONS = Object.freeze({
     download: `
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -310,7 +318,7 @@
     if (!containerEl) {
       return;
     }
-    containerEl.innerHTML = "";
+    containerEl.replaceChildren();
     const parts = String(shortcutString || "")
       .split("+")
       .map((s) => s.trim())
@@ -341,7 +349,7 @@
   }
 
   function renderProviderDeck() {
-    elements.providerDeckContainer.innerHTML = "";
+    elements.providerDeckContainer.replaceChildren();
 
     for (const provider of PROVIDER_CATALOG) {
       const isSelected = provider.id === selectedProviderId;
@@ -395,7 +403,7 @@
 
       const checkBadge = document.createElement("span");
       checkBadge.className = `provider-card-check ${isSelected ? "" : "hidden"}`;
-      checkBadge.innerHTML = CHECK_ICON_SVG;
+      setElementHtmlSafe(checkBadge, CHECK_ICON_SVG);
 
       topRow.appendChild(leftGroup);
       topRow.appendChild(checkBadge);
@@ -426,7 +434,7 @@
     if (!elements.providerCreditsRow) {
       return;
     }
-    elements.providerCreditsRow.innerHTML = "";
+    elements.providerCreditsRow.replaceChildren();
 
     const credits = meta.credits;
     if (!credits) {
@@ -434,7 +442,10 @@
     }
 
     const authorSpan = document.createElement("span");
-    authorSpan.innerHTML = `Projeto / Tecnologia por <strong>${credits.author}</strong>`;
+    authorSpan.textContent = "Projeto / Tecnologia por ";
+    const strongEl = document.createElement("strong");
+    strongEl.textContent = credits.author;
+    authorSpan.appendChild(strongEl);
 
     const linksGroup = document.createElement("div");
     linksGroup.className = "credits-links-group";
@@ -711,16 +722,16 @@
         copyBtn.className = "wizard-copy-icon-btn";
         copyBtn.title = "Copiar comando";
         copyBtn.setAttribute("aria-label", "Copiar comando");
-        copyBtn.innerHTML = CLIPBOARD_ICON_SVG;
+        setElementHtmlSafe(copyBtn, CLIPBOARD_ICON_SVG);
         copyBtn.addEventListener("click", async () => {
           try {
             await navigator.clipboard.writeText(cmdObj.cmd);
             copyBtn.classList.add("is-copied");
-            copyBtn.innerHTML = CHECK_ICON_SVG;
+            setElementHtmlSafe(copyBtn, CHECK_ICON_SVG);
             copyBtn.title = "Copiado!";
             setTimeout(() => {
               copyBtn.classList.remove("is-copied");
-              copyBtn.innerHTML = CLIPBOARD_ICON_SVG;
+              setElementHtmlSafe(copyBtn, CLIPBOARD_ICON_SVG);
               copyBtn.title = "Copiar comando";
             }, 1600);
           } catch (_err) {
@@ -919,7 +930,7 @@
     const total = steps.length;
 
     // 1. Renderiza o Stepper minimalista centralizado (círculos + linhas finas, sem setas)
-    elements.wizardStepperTrack.innerHTML = "";
+    elements.wizardStepperTrack.replaceChildren();
     steps.forEach((st, idx) => {
       const nodeBtn = document.createElement("button");
       nodeBtn.type = "button";
@@ -932,7 +943,11 @@
 
       const numSpan = document.createElement("span");
       numSpan.className = "wizard-step-num";
-      numSpan.innerHTML = idx < activeWizardStepIndex ? CHECK_ICON_SVG : String(idx + 1);
+      if (idx < activeWizardStepIndex) {
+        setElementHtmlSafe(numSpan, CHECK_ICON_SVG);
+      } else {
+        numSpan.textContent = String(idx + 1);
+      }
 
       const labelSpan = document.createElement("span");
       labelSpan.textContent = st.shortTitle;
@@ -957,14 +972,14 @@
     });
 
     // 2. Renderiza o cabeçalho limpo da etapa (sem repetir "Etapa X — ")
-    elements.wizardStepContent.innerHTML = "";
+    elements.wizardStepContent.replaceChildren();
 
     const heroDiv = document.createElement("div");
     heroDiv.className = "wizard-step-hero";
 
     const iconBox = document.createElement("div");
     iconBox.className = "wizard-step-icon-box";
-    iconBox.innerHTML = step.icon || WIZARD_ICONS.server;
+    setElementHtmlSafe(iconBox, step.icon || WIZARD_ICONS.server);
 
     const heroText = document.createElement("div");
     heroText.className = "wizard-step-hero-text";
@@ -1007,16 +1022,37 @@
         btn.type = "button";
         btn.className = `wizard-choice-card ${isSelected ? "is-selected" : ""}`;
 
-        btn.innerHTML = `
-          <div class="wizard-choice-top">
-            <div class="wizard-choice-title">
-              <strong>${item.title}</strong>
-              <span class="wizard-choice-badge">${item.badge}</span>
-            </div>
-            <span class="wizard-choice-radio">${isSelected ? CHECK_ICON_SVG : ""}</span>
-          </div>
-          <p class="wizard-choice-desc">${item.desc}</p>
-        `;
+        const choiceTop = document.createElement("div");
+        choiceTop.className = "wizard-choice-top";
+
+        const choiceTitle = document.createElement("div");
+        choiceTitle.className = "wizard-choice-title";
+
+        const titleStrong = document.createElement("strong");
+        titleStrong.textContent = item.title;
+
+        const badgeSpan = document.createElement("span");
+        badgeSpan.className = "wizard-choice-badge";
+        badgeSpan.textContent = item.badge;
+
+        choiceTitle.appendChild(titleStrong);
+        choiceTitle.appendChild(badgeSpan);
+
+        const radioSpan = document.createElement("span");
+        radioSpan.className = "wizard-choice-radio";
+        if (isSelected) {
+          setElementHtmlSafe(radioSpan, CHECK_ICON_SVG);
+        }
+
+        choiceTop.appendChild(choiceTitle);
+        choiceTop.appendChild(radioSpan);
+
+        const choiceDesc = document.createElement("p");
+        choiceDesc.className = "wizard-choice-desc";
+        choiceDesc.textContent = item.desc;
+
+        btn.appendChild(choiceTop);
+        btn.appendChild(choiceDesc);
 
         btn.addEventListener("click", () => {
           selectedLibreMode = item.mode;
@@ -1047,10 +1083,15 @@
 
       const actionInfo = document.createElement("div");
       actionInfo.className = "wizard-link-info";
-      actionInfo.innerHTML = `
-        <strong>Testar conexão local agora (http://localhost:5000)</strong>
-        <span>Preenche o endereço local automaticamente e verifica se o seu servidor respondeu</span>
-      `;
+
+      const strongEl = document.createElement("strong");
+      strongEl.textContent = "Testar conexão local agora (http://localhost:5000)";
+
+      const spanEl = document.createElement("span");
+      spanEl.textContent = "Preenche o endereço local automaticamente e verifica se o seu servidor respondeu";
+
+      actionInfo.appendChild(strongEl);
+      actionInfo.appendChild(spanEl);
 
       const testNowBtn = document.createElement("button");
       testNowBtn.type = "button";
@@ -1144,12 +1185,12 @@
       elements.offlineModelsSummary.textContent = "Nenhum pacote de idioma instalado no navegador.";
       elements.uninstallOfflineModelsBtn.classList.add("hidden");
       elements.offlineInstalledModelsList.classList.add("hidden");
-      elements.offlineInstalledModelsList.innerHTML = "";
+      elements.offlineInstalledModelsList.replaceChildren();
     } else {
       elements.offlineModelsSummary.textContent = `${downloadedModels.length} pacote(s) de idioma armazenado(s) no navegador:`;
       elements.uninstallOfflineModelsBtn.classList.remove("hidden");
       elements.offlineInstalledModelsList.classList.remove("hidden");
-      elements.offlineInstalledModelsList.innerHTML = "";
+      elements.offlineInstalledModelsList.replaceChildren();
 
       for (const model of downloadedModels) {
         const li = document.createElement("li");
@@ -1183,7 +1224,7 @@
     elements.activeProviderPill.textContent = meta.requiresApiKey ? "Requer chave pessoal" : "Gratuito · Sem chave";
 
     elements.detailsDescription.textContent = meta.description;
-    elements.detailsLimitationsList.innerHTML = "";
+    elements.detailsLimitationsList.replaceChildren();
     for (const limitation of meta.limitations) {
       const li = document.createElement("li");
       li.textContent = limitation;
@@ -1250,9 +1291,9 @@
   }
 
   function populateLanguageSelects() {
-    elements.baseLanguageSelect.innerHTML = "";
+    elements.baseLanguageSelect.replaceChildren();
     if (elements.secondaryLanguageSelect) {
-      elements.secondaryLanguageSelect.innerHTML = "";
+      elements.secondaryLanguageSelect.replaceChildren();
     }
     for (const language of SUPPORTED_LANGUAGES) {
       const option1 = document.createElement("option");
@@ -1336,6 +1377,14 @@
       return { ok: true };
     }
 
+    if (typeof commandName === "string" && commandName.startsWith("_execute_")) {
+      return {
+        ok: true,
+        isSystemCommand: true,
+        message: "No Firefox, atalhos nativos (_execute_) devem ser personalizados em about:addons -> Atalhos de extensão."
+      };
+    }
+
     try {
       await browser.commands.update({
         name: commandName,
@@ -1361,7 +1410,11 @@
     await saveUserPreferences({
       [storageKey]: newShortcut,
     });
-    showSaveFeedback(`Atalho ${newShortcut} salvo`);
+    if (result.isSystemCommand) {
+      showSaveFeedback(result.message, false);
+    } else {
+      showSaveFeedback(`Atalho ${newShortcut} salvo`);
+    }
   }
 
   function bindShortcutRecorder(inputElement, previewElement, commandName, storageKey) {
