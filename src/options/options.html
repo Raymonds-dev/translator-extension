@@ -29,36 +29,148 @@
     </header>
 
     <form id="optionsForm" class="options-card" novalidate>
-      <!-- Seção 1: Chave de Acesso -->
+      <!-- Seção 1: Fonte de Tradução (Seletor Clean e Animado) -->
       <section class="form-section">
         <div class="section-header">
-          <h2>1. Chave de Acesso do Google</h2>
-          <a
-            id="googleCloudLink"
-            href="https://console.cloud.google.com/apis/credentials"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="external-link"
-          >
-            Criar chave no Google Cloud ↗
-          </a>
+          <h2>1. Fonte de Tradução</h2>
+          <span id="activeProviderPill" class="provider-status-pill">Gratuito · Sem chave</span>
         </div>
         <p class="field-description">
-          Cole aqui sua chave pessoal do Google Tradutor. Ela fica guardada com segurança apenas neste navegador.
+          Escolha qual serviço deseja usar para traduzir seus textos. Você também pode alternar rapidamente entre as fontes no topo do Pop-up, Painel Lateral ou Modal.
         </p>
 
-        <div class="password-input-group">
-          <input
-            type="password"
-            id="apiKeyInput"
-            class="text-input"
-            placeholder="Cole sua chave aqui"
-            autocomplete="off"
-            spellcheck="false"
+        <!-- Botão Principal do Seletor -->
+        <div class="provider-selector-wrapper">
+          <button
+            type="button"
+            id="providerSelectorToggleBtn"
+            class="provider-active-trigger"
+            aria-expanded="false"
           >
-          <button type="button" id="togglePasswordBtn" class="secondary-btn">
-            Mostrar
+            <div class="provider-trigger-left">
+              <div class="provider-logo-box" id="activeProviderLogoBox">
+                <img id="activeProviderLogoImg" src="../../assets/providers/lingva.svg" alt="Logo" class="provider-logo-img">
+                <span id="activeProviderLogoFallback" class="provider-logo-fallback hidden">LV</span>
+              </div>
+              <div class="provider-trigger-info">
+                <strong id="activeProviderName" class="provider-trigger-name">Lingva Translate</strong>
+                <span id="activeProviderTagline" class="provider-trigger-tagline">Gratuito · Sem cadastro · Qualidade Google</span>
+              </div>
+            </div>
+            <div class="provider-trigger-right">
+              <span id="providerToggleActionText">Trocar fonte</span>
+              <svg class="provider-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
           </button>
+
+          <!-- Lista Animada de Fontes -->
+          <div id="providerDeckContainer" class="provider-deck" role="radiogroup" aria-label="Escolha a fonte de tradução"></div>
+        </div>
+
+        <!-- Resumo Discreto da Fonte Selecionada -->
+        <div id="providerDetailsPanel" class="provider-details-card">
+          <p id="detailsDescription" class="provider-details-desc"></p>
+          <div class="limitations-box">
+            <span class="limitations-heading">Observações desta fonte:</span>
+            <ul id="detailsLimitationsList" class="limitations-list"></ul>
+          </div>
+        </div>
+
+        <!-- Gerenciamento Condicional: Modelo Local Offline -->
+        <div id="offlineManagementSection" class="conditional-provider-fields hidden">
+          <div class="offline-mgmt-row">
+            <div class="offline-mgmt-info">
+              <span class="field-label">Controle do Modelo Local na Memória</span>
+              <span id="offlineEngineStatusLabel" class="offline-mgmt-sub">
+                Verificando status do motor local...
+              </span>
+            </div>
+            <button type="button" id="toggleOfflineEngineBtn" class="secondary-btn">
+              Desativar modelo local
+            </button>
+          </div>
+
+          <div class="offline-models-box">
+            <div class="offline-mgmt-row">
+              <div class="offline-mgmt-info">
+                <span class="field-label">Pacotes de Idiomas Instalados no Navegador</span>
+                <span id="offlineModelsSummary" class="offline-mgmt-sub">
+                  Nenhum pacote baixado no momento.
+                </span>
+              </div>
+              <button type="button" id="uninstallOfflineModelsBtn" class="danger-outline-btn hidden">
+                Desinstalar modelos locais
+              </button>
+              <div id="uninstallOfflineConfirmGroup" class="inline-confirm-group hidden">
+                <span class="inline-confirm-text">Remover pacotes?</span>
+                <button type="button" id="confirmUninstallOfflineBtn" class="danger-solid-btn">Sim, remover</button>
+                <button type="button" id="cancelUninstallOfflineBtn" class="secondary-btn-sm">Cancelar</button>
+              </div>
+            </div>
+            <ul id="offlineInstalledModelsList" class="installed-models-list hidden"></ul>
+          </div>
+        </div>
+
+        <!-- Campos Condicionais: Google Cloud API Key -->
+        <div id="googleKeySection" class="conditional-provider-fields hidden">
+          <div class="section-header">
+            <label for="apiKeyInput" class="field-label">Chave de Acesso do Google Cloud</label>
+            <a
+              id="googleCloudLink"
+              href="https://console.cloud.google.com/apis/credentials"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="external-link"
+            >
+              Criar chave no Google Cloud ↗
+            </a>
+          </div>
+          <p class="field-description">
+            Cole aqui sua chave pessoal do Google Tradutor. Ela fica guardada com segurança apenas neste navegador.
+          </p>
+          <div class="password-input-group">
+            <input
+              type="password"
+              id="apiKeyInput"
+              class="text-input"
+              placeholder="Cole sua chave pessoal do Google aqui"
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <button type="button" id="togglePasswordBtn" class="secondary-btn">
+              Mostrar
+            </button>
+          </div>
+        </div>
+
+        <!-- Campos Condicionais: LibreTranslate -->
+        <div id="libreTranslateSection" class="conditional-provider-fields hidden">
+          <div class="appearance-grid">
+            <div class="appearance-field">
+              <label for="libreTranslateUrlInput" class="field-label">Servidor do LibreTranslate</label>
+              <input
+                type="url"
+                id="libreTranslateUrlInput"
+                class="text-input"
+                placeholder="https://translate.terraprint.co"
+                autocomplete="off"
+                spellcheck="false"
+              >
+            </div>
+            <div class="appearance-field">
+              <label for="libreTranslateKeyInput" class="field-label">Chave do servidor (opcional)</label>
+              <input
+                type="password"
+                id="libreTranslateKeyInput"
+                class="text-input"
+                placeholder="Deixe em branco para usar espelhos gratuitos"
+                autocomplete="off"
+                spellcheck="false"
+              >
+            </div>
+          </div>
         </div>
       </section>
 
@@ -139,7 +251,7 @@
               <button type="button" id="resetShortcutBtn" class="link-btn">Restaurar Alt+T</button>
             </div>
             <p class="shortcut-help">
-              Abre e fecha o modal centralizado na página ou traduz o texto selecionado na hora.
+              Abre e fecha o modal na página ou traduz o texto selecionado na hora.
             </p>
             <input
               type="text"
@@ -190,6 +302,7 @@
 
   <script src="../shared/constants.js"></script>
   <script src="../shared/languages.js"></script>
+  <script src="../shared/providers.js"></script>
   <script src="../shared/storage.js"></script>
   <script src="options.js"></script>
 </body>
