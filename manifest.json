@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Tradutor Rápido",
-  "version": "1.3.0",
+  "version": "2.0.0",
   "description": "Consulte traduções de palavras e frases selecionadas rapidamente sem sair da página.",
   "browser_specific_settings": {
     "gecko": {
@@ -21,10 +21,12 @@
     "contextMenus",
     "tabs"
   ],
+  "content_security_policy": "script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; object-src 'self'",
   "background": {
     "scripts": [
       "src/shared/constants.js",
       "src/shared/languages.js",
+      "src/shared/providers.js",
       "src/shared/storage.js",
       "src/background/api-client.js",
       "src/background/background.js"
@@ -78,6 +80,7 @@
       "js": [
         "src/shared/constants.js",
         "src/shared/languages.js",
+        "src/shared/providers.js",
         "src/content/widget-styles.js",
         "src/content/translator-widget.js",
         "src/content/content.js"
@@ -89,6 +92,11 @@
   "web_accessible_resources": [
     "src/content/widget.css",
     "assets/icons/icon-16.svg",
-    "assets/icons/icon-48.svg"
+    "assets/icons/icon-48.svg",
+    "assets/providers/lingva.svg",
+    "assets/providers/mymemory.svg",
+    "assets/providers/libretranslate.svg",
+    "assets/providers/google.svg",
+    "assets/providers/offline.svg"
   ]
 }
