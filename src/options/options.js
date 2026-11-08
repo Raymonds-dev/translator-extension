@@ -28,8 +28,8 @@
   function setElementHtmlSafe(targetElement, htmlString) {
     targetElement.replaceChildren();
     const doc = new DOMParser().parseFromString(htmlString.trim(), "text/html");
-    while (doc.body.firstChild) {
-      targetElement.appendChild(document.importNode(doc.body.firstChild, true));
+    for (const node of Array.from(doc.body.childNodes)) {
+      targetElement.appendChild(document.importNode(node, true));
     }
   }
 

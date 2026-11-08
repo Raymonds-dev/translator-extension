@@ -46,17 +46,8 @@
   function setElementHtmlSafe(targetElement, htmlString) {
     targetElement.replaceChildren();
     const doc = new DOMParser().parseFromString(htmlString.trim(), "text/html");
-    while (doc.body.firstChild) {
-      targetElement.appendChild(document.importNode(doc.body.firstChild, true));
-    }
-  }
-
-  function setElementSvg(targetElement, svgString) {
-    targetElement.replaceChildren();
-    const doc = new DOMParser().parseFromString(svgString.trim(), "image/svg+xml");
-    const svg = doc.documentElement;
-    if (svg && svg.nodeName.toLowerCase() === "svg") {
-      targetElement.appendChild(document.importNode(svg, true));
+    for (const node of Array.from(doc.body.childNodes)) {
+      targetElement.appendChild(document.importNode(node, true));
     }
   }
 
