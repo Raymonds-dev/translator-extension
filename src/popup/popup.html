@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tradutor Rápido</title>
+  <title>TraduzAí</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body data-theme="dark">
@@ -11,9 +11,17 @@
     <header class="brand-bar">
       <div class="brand-title-group">
         <img src="../../assets/icons/icon-16.svg" alt="Ícone" class="brand-mini-icon">
-        <span class="brand-title">Tradutor Rápido</span>
+        <span class="brand-title">TraduzAí</span>
       </div>
       <div class="header-actions">
+        <select id="quickProviderSelect" class="quick-provider-select" title="Trocar fonte de tradução"></select>
+        <button type="button" class="icon-btn" id="historyToggleBtn" title="Histórico de traduções" aria-label="Histórico de traduções">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <path d="M3 3v5h5"></path>
+            <path d="M12 7v5l4 2"></path>
+          </svg>
+        </button>
         <button type="button" class="icon-btn" id="themeToggleBtn" title="Alternar tema claro ou escuro" aria-label="Alternar tema">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
@@ -28,60 +36,102 @@
       </div>
     </header>
 
-    <div class="popup-header">
-      <div class="lang-bar">
-        <span class="source-lang-badge" id="sourceLangBadge" title="Idioma identificado">Detectar idioma</span>
-        <button type="button" class="switch-btn" id="switchLanguagesBtn" title="Inverter idiomas e editar tradução">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M7 16V4M7 4L3 8M7 4L11 8"/>
-            <path d="M17 8V20M17 20L21 16M17 20L13 16"/>
-          </svg>
-        </button>
-        <select class="target-lang-select" id="targetLangSelect" title="Mudar idioma desta tradução"></select>
+    <!-- VISÃO 1: TRADUTOR -->
+    <div id="translatorView" class="view-wrapper">
+      <div class="popup-header">
+        <div class="lang-bar">
+          <span class="source-lang-badge" id="sourceLangBadge" title="Idioma identificado">Detectar idioma</span>
+          <button type="button" class="switch-btn" id="switchLanguagesBtn" title="Inverter idiomas e editar tradução">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7 16V4M7 4L3 8M7 4L11 8"/>
+              <path d="M17 8V20M17 20L21 16M17 20L13 16"/>
+            </svg>
+          </button>
+          <select class="target-lang-select" id="targetLangSelect" title="Mudar idioma desta tradução"></select>
+        </div>
+      </div>
+
+      <div class="popup-body">
+        <div class="input-section">
+          <span class="section-label">Texto</span>
+          <textarea
+            class="source-input"
+            id="sourceInput"
+            placeholder="Digite um texto em qualquer idioma para traduzir..."
+            rows="4"
+            autocomplete="off"
+            autofocus
+          ></textarea>
+          <div class="input-meta">
+            <span id="tempSessionIndicator"></span>
+            <div class="input-meta-right">
+              <span class="char-counter" id="charCounter">0 / 2000</span>
+              <button type="button" class="translate-submit-btn" id="translateNowBtn" title="Traduzir texto (Ctrl + Enter)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14"></path>
+                  <path d="m12 5 7 7-7 7"></path>
+                </svg>
+                <span>Traduzir</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra de Progresso do Modo Offline -->
+        <div class="offline-progress-container hidden" id="offlineProgressContainer">
+          <div class="offline-progress-header">
+            <span id="offlineProgressText">Baixando pacote de tradução: 0%...</span>
+          </div>
+          <div class="offline-progress-track">
+            <div class="offline-progress-fill" id="offlineProgressFill" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="status-banner hidden" id="statusBanner">
+          <span id="statusBannerText"></span>
+          <div class="status-actions-row">
+            <button type="button" class="action-btn hidden" id="statusActionBtn"></button>
+            <button type="button" class="secondary-action-btn hidden" id="statusSecondaryBtn"></button>
+          </div>
+        </div>
+
+        <div class="result-section">
+          <div class="result-header">
+            <span class="section-label">TRADUÇÃO</span>
+            <button type="button" class="copy-header-btn hidden" id="copyBtn" title="Copiar tradução">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Copiar</span>
+            </button>
+          </div>
+          <div class="translated-output placeholder" id="translatedOutput">A tradução aparecerá aqui...</div>
+          <span class="temp-lang-hint" id="detectedHint"></span>
+        </div>
       </div>
     </div>
 
-    <div class="popup-body">
-      <div class="input-section">
-        <span class="section-label">Texto</span>
-        <textarea
-          class="source-input"
-          id="sourceInput"
-          placeholder="Digite um texto em qualquer idioma para traduzir..."
-          rows="4"
-          autocomplete="off"
-          autofocus
-        ></textarea>
-        <div class="input-meta">
-          <span id="tempSessionIndicator"></span>
-          <span class="char-counter" id="charCounter">0 / 2000</span>
+    <!-- VISÃO 2: HISTÓRICO (ATÉ 20 ITENS) -->
+    <div id="historyView" class="view-wrapper hidden">
+      <div class="history-toolbar">
+        <span class="history-count-label" id="historyCountLabel">Últimas traduções (0/20)</span>
+        <button type="button" class="clear-history-btn" id="clearHistoryBtn">
+          Limpar histórico
+        </button>
+        <div class="clear-confirm-group hidden" id="clearHistoryConfirmGroup">
+          <span class="clear-confirm-label">Apagar tudo?</span>
+          <button type="button" class="confirm-danger-btn" id="confirmClearHistoryBtn">Sim, apagar</button>
+          <button type="button" class="confirm-cancel-btn" id="cancelClearHistoryBtn">Cancelar</button>
         </div>
       </div>
-
-      <div class="status-banner hidden" id="statusBanner">
-        <span id="statusBannerText"></span>
-        <button type="button" class="action-btn hidden" id="statusActionBtn"></button>
-      </div>
-
-      <div class="result-section">
-        <div class="result-header">
-          <span class="section-label">TRADUÇÃO</span>
-          <button type="button" class="copy-header-btn hidden" id="copyBtn" title="Copiar tradução">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-            <span>Copiar</span>
-          </button>
-        </div>
-        <div class="translated-output placeholder" id="translatedOutput">A tradução aparecerá aqui...</div>
-        <span class="temp-lang-hint" id="detectedHint"></span>
-      </div>
+      <div class="history-list" id="historyList"></div>
     </div>
   </main>
 
   <script src="../shared/constants.js"></script>
   <script src="../shared/languages.js"></script>
+  <script src="../shared/providers.js"></script>
   <script src="../shared/storage.js"></script>
   <script src="popup.js"></script>
 </body>

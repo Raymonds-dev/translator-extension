@@ -1,196 +1,509 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Opções — Tradutor Rápido</title>
-  <link rel="stylesheet" href="options.css">
-</head>
-<body data-theme="dark">
-  <main class="options-container">
-    <header class="page-header">
-      <div class="brand-row">
-        <img src="../../assets/icons/icon-48.svg" alt="Ícone da Extensão" class="brand-icon">
-        <div>
-          <h1>Tradutor Rápido</h1>
-          <p class="subtitle">
-            Consulte traduções de palavras e frases selecionadas rapidamente, sem sair da página que você está lendo.
-          </p>
-        </div>
-      </div>
-      <div class="header-buttons">
-        <button type="button" id="openWelcomeBtn" class="secondary-btn">
-          Como funciona
-        </button>
-        <button type="button" id="themeToggleBtn" class="secondary-btn">
-          Alternar tema
-        </button>
-      </div>
-    </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Configurações — TraduzAí</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body data-theme="dark">
+    <!-- Toast Flutuante de Auto-Save -->
+    <div id="saveStatusFeedback" class="toast-feedback hidden" role="status" aria-live="polite"></div>
 
-    <form id="optionsForm" class="options-card" novalidate>
-      <!-- Seção 1: Chave de Acesso -->
-      <section class="form-section">
-        <div class="section-header">
-          <h2>1. Chave de Acesso do Google</h2>
-          <a
-            id="googleCloudLink"
-            href="https://console.cloud.google.com/apis/credentials"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="external-link"
-          >
-            Criar chave no Google Cloud ↗
-          </a>
+    <main class="options-container">
+      <!-- Cabeçalho -->
+      <header class="page-header">
+        <div class="brand-row">
+          <img src="../../assets/icons/icon-48.svg" alt="Ícone do TraduzAí" class="brand-icon" />
+          <div>
+            <div class="title-with-badge">
+              <h1>TraduzAí</h1>
+              <span class="autosave-hint">Salva automaticamente</span>
+            </div>
+            <p class="subtitle">Personalize seu idioma, fonte de tradução, comportamento ao digitar, efeito de vidro e atalhos.</p>
+          </div>
         </div>
-        <p class="field-description">
-          Cole aqui sua chave pessoal do Google Tradutor. Ela fica guardada com segurança apenas neste navegador.
-        </p>
+        <div class="header-buttons">
+          <button type="button" id="openWelcomeBtn" class="secondary-btn">Boas-vindas &amp; Playground</button>
+          <button type="button" id="themeToggleBtn" class="secondary-btn">Alternar tema</button>
+        </div>
+      </header>
 
-        <div class="password-input-group">
-          <input
-            type="password"
-            id="apiKeyInput"
-            class="text-input"
-            placeholder="Cole sua chave aqui"
-            autocomplete="off"
-            spellcheck="false"
-          >
-          <button type="button" id="togglePasswordBtn" class="secondary-btn">
-            Mostrar
+      <!-- Navegação por Abas com Ícones SVG -->
+      <nav class="tabs-nav" role="tablist" aria-label="Categorias de configuração">
+        <button type="button" class="tab-nav-btn is-active" data-tab-target="panelGeneral" role="tab" aria-selected="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+          <span>Idioma &amp; Fontes</span>
+        </button>
+        <button type="button" class="tab-nav-btn" data-tab-target="panelAppearance" role="tab" aria-selected="false">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+          </svg>
+          <span>Visual &amp; Efeito Vidro</span>
+        </button>
+        <button type="button" class="tab-nav-btn" data-tab-target="panelShortcuts" role="tab" aria-selected="false">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+            <path d="M6 8h.001M10 8h.001M14 8h.001M18 8h.001M8 12h.001M12 12h.001M16 12h.001M7 16h10"></path>
+          </svg>
+          <span>Atalhos do Teclado</span>
+        </button>
+      </nav>
+
+      <form id="optionsForm" class="panels-wrapper" novalidate>
+        <!-- ABA 1: IDIOMA & FONTES -->
+        <div id="panelGeneral" class="tab-panel" role="tabpanel">
+          <div class="bento-grid">
+            <!-- Cartão 1: Idioma Mãe e Segundo Idioma de Fallback -->
+            <section class="settings-card">
+              <div class="section-header">
+                <h2>Seus Idiomas de Tradução</h2>
+                <span class="subtle-pill">Inversão automática</span>
+              </div>
+              <p class="field-description">
+                Textos em línguas estrangeiras são traduzidos para o seu
+                <strong>Idioma Mãe</strong>.
+                Ao selecionar ou digitar uma frase que já está no seu Idioma Mãe, o
+                <strong>TraduzAí</strong>
+                inverte e traduz automaticamente para o seu
+                <strong>Segundo Idioma (Fallback)</strong>.
+              </p>
+              <div class="languages-inputs-grid">
+                <div class="field-block">
+                  <label for="baseLanguageSelect" class="field-label">Idioma Mãe (Principal)</label>
+                  <select id="baseLanguageSelect" class="select-input"></select>
+                  <span class="field-hint">Destino padrão de todas as traduções</span>
+                </div>
+                <div class="field-block">
+                  <label for="secondaryLanguageSelect" class="field-label">Segundo Idioma (Fallback)</label>
+                  <select id="secondaryLanguageSelect" class="select-input"></select>
+                  <span class="field-hint">Destino quando a frase já está no Idioma Mãe</span>
+                </div>
+              </div>
+            </section>
+
+            <!-- Cartão 2: Comportamento ao Digitar (Economia de Requisições) -->
+            <section class="settings-card">
+              <div class="section-header">
+                <h2>Tradução ao Digitar vs. Botão Traduzir</h2>
+                <span id="typingModePill" class="subtle-pill">Padrão: Botão Traduzir</span>
+              </div>
+              <p class="field-description">
+                Quando você
+                <strong>seleciona um texto na página</strong>
+                , a tradução acontece
+                <strong>automaticamente na hora</strong>
+                . Abaixo você controla apenas o que acontece enquanto digita ou corrige palavras manualmente:
+              </p>
+
+              <label class="toggle-row" for="autoTranslateOnTypeInput">
+                <div class="toggle-text">
+                  <span class="toggle-title">Traduzir automaticamente enquanto digito</span>
+                  <span class="toggle-subtitle">
+                    Quando desativado, basta clicar no botão
+                    <strong>Traduzir</strong>
+                    (ou apertar
+                    <kbd>Ctrl</kbd>
+                    +
+                    <kbd>Enter</kbd>
+                    ).
+                  </span>
+                </div>
+                <input type="checkbox" id="autoTranslateOnTypeInput" class="toggle-checkbox" />
+              </label>
+
+              <div id="typingDelayConfigBox" class="typing-delay-box hidden">
+                <div class="section-header">
+                  <label for="typingDebounceInput" class="field-label">Tempo de espera após parar de digitar</label>
+                  <span id="typingDebounceValue" class="slider-value">1.0s (1000 ms)</span>
+                </div>
+                <p class="shortcut-help">Quanto tempo aguardar após a última tecla antes de enviar a tradução automaticamente:</p>
+                <input type="range" id="typingDebounceInput" class="range-input" min="300" max="3000" step="100" value="1000" />
+              </div>
+            </section>
+
+            <!-- Cartão 3: Fonte de Tradução -->
+            <section class="settings-card">
+              <div class="section-header">
+                <h2>Fonte de Tradução</h2>
+                <span id="activeProviderPill" class="provider-status-pill">Gratuito · Sem chave</span>
+              </div>
+              <p class="field-description">Escolha o motor padrão das traduções. Você também pode alternar rapidamente entre eles no topo do Pop-up, Painel Lateral ou Modal.</p>
+
+              <div class="provider-selector-wrapper">
+                <button type="button" id="providerSelectorToggleBtn" class="provider-active-trigger" aria-expanded="false">
+                  <div class="provider-trigger-left">
+                    <div class="provider-logo-box" id="activeProviderLogoBox">
+                      <img id="activeProviderLogoImg" src="../../assets/providers/mymemory.svg" alt="Logo" class="provider-logo-img" />
+                      <span id="activeProviderLogoFallback" class="provider-logo-fallback hidden">MM</span>
+                    </div>
+                    <div class="provider-trigger-info">
+                      <div class="provider-trigger-title-line">
+                        <strong id="activeProviderName" class="provider-trigger-name">MyMemory</strong>
+                        <span class="active-selected-badge">Selecionada</span>
+                      </div>
+                      <span id="activeProviderTagline" class="provider-trigger-tagline">Gratuito · Memória colaborativa · Sem chave</span>
+                    </div>
+                  </div>
+                  <div class="provider-trigger-right">
+                    <span id="providerToggleActionText">Trocar fonte</span>
+                    <svg class="provider-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </div>
+                </button>
+
+                <!-- Lista de Fontes -->
+                <div id="providerDeckContainer" class="provider-deck" role="radiogroup" aria-label="Escolha a fonte de tradução"></div>
+              </div>
+
+              <!-- Detalhes, Limitações em Vermelho Leve e Créditos Oficiais -->
+              <div id="providerDetailsPanel" class="provider-details-card">
+                <p id="detailsDescription" class="provider-details-desc"></p>
+
+                <div>
+                  <div class="limitations-heading-row">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="8" x2="12" y2="12"></line>
+                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <span class="limitations-heading">Limitações e pontos de atenção:</span>
+                  </div>
+                  <ul id="detailsLimitationsList" class="limitations-list"></ul>
+                </div>
+
+                <div id="providerCreditsRow" class="provider-credits-row"></div>
+              </div>
+
+              <!-- Gerenciamento Condicional: Modelo Local Offline -->
+              <div id="offlineManagementSection" class="conditional-provider-fields hidden">
+                <div class="offline-mgmt-row">
+                  <div class="offline-mgmt-info">
+                    <span class="field-label">Controle do Modelo Local na Memória</span>
+                    <span id="offlineEngineStatusLabel" class="offline-mgmt-sub">Verificando status do motor local...</span>
+                  </div>
+                  <button type="button" id="toggleOfflineEngineBtn" class="secondary-btn">Desativar modelo local</button>
+                </div>
+
+                <div class="offline-models-box">
+                  <div class="offline-mgmt-row">
+                    <div class="offline-mgmt-info">
+                      <span class="field-label">Pacotes de Idiomas Instalados no Navegador</span>
+                      <span id="offlineModelsSummary" class="offline-mgmt-sub">Nenhum pacote baixado no momento.</span>
+                    </div>
+                    <button type="button" id="uninstallOfflineModelsBtn" class="danger-outline-btn hidden">Desinstalar modelos locais</button>
+                    <div id="uninstallOfflineConfirmGroup" class="inline-confirm-group hidden">
+                      <span class="inline-confirm-text">Remover pacotes?</span>
+                      <button type="button" id="confirmUninstallOfflineBtn" class="danger-solid-btn">Sim, remover</button>
+                      <button type="button" id="cancelUninstallOfflineBtn" class="secondary-btn-sm">Cancelar</button>
+                    </div>
+                  </div>
+                  <ul id="offlineInstalledModelsList" class="installed-models-list hidden"></ul>
+                </div>
+              </div>
+
+              <!-- Campos Condicionais: Google Cloud API Key -->
+              <div id="googleKeySection" class="conditional-provider-fields hidden">
+                <div class="section-header">
+                  <label for="apiKeyInput" class="field-label">Chave de Acesso do Google Cloud</label>
+                  <a id="googleCloudLink" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" class="external-link">Painel Google Cloud ↗</a>
+                </div>
+                <div class="password-input-group">
+                  <input type="password" id="apiKeyInput" class="text-input" placeholder="Cole sua chave pessoal do Google aqui" autocomplete="off" spellcheck="false" />
+                  <button type="button" id="togglePasswordBtn" class="secondary-btn">Mostrar</button>
+                </div>
+
+                <button type="button" class="open-wizard-banner-btn" data-wizard-id="google">
+                  <div class="wizard-banner-left">
+                    <span class="wizard-banner-icon" aria-hidden="true">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+                      </svg>
+                    </span>
+                    <div class="wizard-banner-text">
+                      <strong>Como criar minha Chave de API no Google Cloud</strong>
+                      <span>Passo a passo guiado para ativar a API e gerar sua credencial</span>
+                    </div>
+                  </div>
+                  <span class="wizard-banner-cta">
+                    <span>Abrir guia</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                      <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                  </span>
+                </button>
+              </div>
+
+              <!-- Campos Condicionais: LibreTranslate + Mini-Servidor Local -->
+              <div id="libreTranslateSection" class="conditional-provider-fields hidden">
+                <div class="libre-presets-bar">
+                  <span class="field-label">Conexão rápida:</span>
+                  <div class="libre-preset-buttons">
+                    <button type="button" id="useLocalLibreBtn" class="secondary-btn-sm">Usar Mini-Servidor Local (localhost:5000)</button>
+                    <button type="button" id="usePublicLibreBtn" class="secondary-btn-sm">Usar Espelho Público</button>
+                    <button type="button" id="testLibreServerBtn" class="secondary-btn-sm">Testar conexão</button>
+                  </div>
+                </div>
+
+                <div id="libreConnectionStatus" class="libre-connection-status hidden"></div>
+
+                <div class="appearance-grid">
+                  <div class="appearance-field">
+                    <label for="libreTranslateUrlInput" class="field-label">Endereço do Servidor LibreTranslate</label>
+                    <input type="url" id="libreTranslateUrlInput" class="text-input" placeholder="http://localhost:5000 ou https://translate.terraprint.co" autocomplete="off" spellcheck="false" />
+                  </div>
+                  <div class="appearance-field">
+                    <label for="libreTranslateKeyInput" class="field-label">Chave do servidor (opcional)</label>
+                    <input type="password" id="libreTranslateKeyInput" class="text-input" placeholder="Em branco para servidor local ou espelho aberto" autocomplete="off" spellcheck="false" />
+                  </div>
+                </div>
+
+                <button type="button" class="open-wizard-banner-btn" data-wizard-id="libretranslate">
+                  <div class="wizard-banner-left">
+                    <span class="wizard-banner-icon" aria-hidden="true">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="4 17 10 11 4 5"></polyline>
+                        <line x1="12" y1="19" x2="20" y2="19"></line>
+                      </svg>
+                    </span>
+                    <div class="wizard-banner-text">
+                      <strong>Como rodar um Mini-Servidor Local na sua máquina</strong>
+                      <span>Escolha entre Python + uv ou Docker e siga o passo a passo sem limites</span>
+                    </div>
+                  </div>
+                  <span class="wizard-banner-cta">
+                    <span>Abrir passo a passo</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                      <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                  </span>
+                </button>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <!-- ABA 2: VISUAL & EFEITO VIDRO -->
+        <div id="panelAppearance" class="tab-panel hidden" role="tabpanel">
+          <div class="bento-grid">
+            <!-- Cartão: Tema e Ícone Flutuante -->
+            <section class="settings-card">
+              <div class="section-header">
+                <h2>Tema &amp; Ícone na Página</h2>
+                <span class="subtle-pill">Conforto visual</span>
+              </div>
+              <p class="field-description">Escolha o estilo que combina melhor com a sua leitura e defina se o botão azul deve aparecer ao selecionar palavras.</p>
+
+              <!-- Cartões Visuais de Tema com SVG -->
+              <div class="theme-cards-row">
+                <button type="button" class="theme-choice-card" data-theme-choice="dark" id="themeCardDark">
+                  <span class="theme-choice-icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                  </span>
+                  <div class="theme-choice-text">
+                    <strong>Modo Escuro</strong>
+                    <span>Ideal para leitura noturna e descanso visual</span>
+                  </div>
+                </button>
+                <button type="button" class="theme-choice-card" data-theme-choice="light" id="themeCardLight">
+                  <span class="theme-choice-icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="5"></circle>
+                      <line x1="12" y1="1" x2="12" y2="3"></line>
+                      <line x1="12" y1="21" x2="12" y2="23"></line>
+                      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                      <line x1="1" y1="12" x2="3" y2="12"></line>
+                      <line x1="21" y1="12" x2="23" y2="12"></line>
+                      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                  </span>
+                  <div class="theme-choice-text">
+                    <strong>Modo Claro</strong>
+                    <span>Visual limpo e arejado para ambientes claros</span>
+                  </div>
+                </button>
+              </div>
+
+              <!-- Select oculto mantido para compatibilidade -->
+              <select id="themeSelect" class="hidden" aria-hidden="true">
+                <option value="dark">Escuro</option>
+                <option value="light">Claro</option>
+              </select>
+
+              <label class="toggle-row" for="showSelectionIconInput">
+                <div class="toggle-text">
+                  <span class="toggle-title">Mostrar ícone flutuante ao selecionar texto</span>
+                  <span class="toggle-subtitle">
+                    Quando desativado, o ícone não aparece sobre a página, mas você continua traduzindo normalmente pelo atalho
+                    <kbd>Alt</kbd>
+                    +
+                    <kbd>T</kbd>
+                    ou botão direito.
+                  </span>
+                </div>
+                <input type="checkbox" id="showSelectionIconInput" class="toggle-checkbox" checked />
+              </label>
+            </section>
+
+            <!-- Cartão: Opacidade do Vidro com Preview ao Vivo -->
+            <section class="settings-card">
+              <div class="section-header">
+                <h2>Efeito de Vidro (Opacidade)</h2>
+                <span id="modalOpacityValue" class="slider-value">88%</span>
+              </div>
+              <p class="field-description">
+                Arraste o controle abaixo e veja na miniatura como a janela flutuante do
+                <strong>TraduzAí</strong>
+                fica sobre uma página web.
+              </p>
+
+              <input type="range" id="modalOpacityInput" class="range-input" min="65" max="100" value="88" />
+
+              <!-- Palco de Preview ao Vivo do Vidro -->
+              <div class="glass-preview-stage">
+                <div class="stage-fake-article" aria-hidden="true">
+                  <span class="fake-tag">ARTIGO DE EXEMPLO NA PÁGINA</span>
+                  <p>Simplicity is about subtracting the obvious and adding the meaningful. Good tools blend naturally into your reading flow.</p>
+                  <div class="fake-color-blobs">
+                    <span class="blob-blue"></span>
+                    <span class="blob-emerald"></span>
+                  </div>
+                </div>
+
+                <div id="liveGlassPreviewCard" class="live-glass-modal">
+                  <div class="live-glass-header">
+                    <span class="live-glass-brand">TraduzAí</span>
+                    <span class="live-glass-pill" id="liveGlassAlphaLabel">88% opaco</span>
+                  </div>
+                  <div class="live-glass-body">"Simplicidade é subtrair o óbvio e adicionar o que tem significado."</div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <!-- ABA 3: ATALHOS DO TECLADO -->
+        <div id="panelShortcuts" class="tab-panel hidden" role="tabpanel">
+          <div class="bento-grid">
+            <section class="settings-card">
+              <div class="section-header">
+                <h2>Atalhos Rápidos do Teclado</h2>
+                <span class="subtle-pill">Gravador interativo</span>
+              </div>
+              <p class="field-description">
+                Clique em qualquer caixa abaixo e pressione a combinação de teclas desejada (por exemplo,
+                <kbd>Alt</kbd>
+                +
+                <kbd>T</kbd>
+                ). O atalho é atualizado no navegador na mesma hora.
+              </p>
+
+              <div class="shortcuts-grid">
+                <!-- Atalho 1: Modal -->
+                <div class="shortcut-card">
+                  <div class="section-header">
+                    <label for="shortcutInput" class="field-label">Janela Flutuante na Página</label>
+                    <button type="button" id="resetShortcutBtn" class="link-btn">Restaurar Alt+T</button>
+                  </div>
+                  <p class="shortcut-help">Abre e fecha a janela de tradução na página ou traduz o trecho selecionado imediatamente.</p>
+                  <div class="shortcut-recorder-box">
+                    <div id="shortcutKbdPreview" class="kbd-preview-row"></div>
+                    <input type="text" id="shortcutInput" class="text-input shortcut-recorder-input" placeholder="Clique aqui e aperte as teclas..." value="Alt+T" readonly />
+                  </div>
+                </div>
+
+                <!-- Atalho 2: Painel Lateral -->
+                <div class="shortcut-card">
+                  <div class="section-header">
+                    <label for="sidebarShortcutInput" class="field-label">Painel Lateral do Navegador</label>
+                    <button type="button" id="resetSidebarShortcutBtn" class="link-btn">Restaurar Alt+Shift+T</button>
+                  </div>
+                  <p class="shortcut-help">
+                    Abre o
+                    <strong>TraduzAí</strong>
+                    no painel lateral para acompanhar suas seleções de leitura em tempo real.
+                  </p>
+                  <div class="shortcut-recorder-box">
+                    <div id="sidebarShortcutKbdPreview" class="kbd-preview-row"></div>
+                    <input type="text" id="sidebarShortcutInput" class="text-input shortcut-recorder-input" placeholder="Clique aqui e aperte as teclas..." value="Alt+Shift+T" readonly />
+                  </div>
+                </div>
+              </div>
+
+              <div class="browser-shortcut-notice">
+                <div class="browser-shortcut-text">
+                  <strong>Gerenciador nativo de atalhos do navegador:</strong>
+                  Se preferir, você também pode conferir ou editar os atalhos de todas as suas extensões direto no painel oficial do navegador.
+                </div>
+                <button type="button" id="openBrowserShortcutsBtn" class="secondary-btn">Abrir gerenciador do navegador</button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </form>
+    </main>
+
+    <!-- MODAL DE AJUDA E CONFIGURAÇÃO EM ETAPAS (STEP-BY-STEP WIZARD) -->
+    <div id="stepWizardBackdrop" class="wizard-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="wizardModalTitle">
+      <div class="wizard-modal">
+        <header class="wizard-header">
+          <div class="wizard-header-titles">
+            <span id="wizardBadgePill" class="wizard-badge-pill">Guia Passo a Passo</span>
+            <h2 id="wizardModalTitle">Configuração em Etapas</h2>
+            <p id="wizardModalSubtitle" class="wizard-subtitle"></p>
+          </div>
+          <button type="button" id="closeWizardModalBtn" class="wizard-close-btn" title="Fechar guia" aria-label="Fechar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>
-        </div>
-      </section>
+        </header>
 
-      <hr class="divider">
+        <!-- Barra Ilustrativa de Etapas com Setas -->
+        <nav id="wizardStepperTrack" class="wizard-stepper-track" aria-label="Etapas do tutorial"></nav>
 
-      <!-- Seção 2: Idioma Mãe -->
-      <section class="form-section">
-        <h2>2. Idioma Mãe</h2>
-        <p class="field-description">
-          Escolha sua língua principal. Todos os textos selecionados serão traduzidos automaticamente para o seu Idioma Mãe, e quando você escrever no seu próprio Idioma Mãe a extensão traduzirá para outro idioma.
-        </p>
-        <select id="baseLanguageSelect" class="select-input"></select>
-      </section>
+        <!-- Corpo da Etapa Atual -->
+        <div id="wizardStepContent" class="wizard-step-content"></div>
 
-      <hr class="divider">
-
-      <!-- Seção 3: Aparência e Comportamento -->
-      <section class="form-section">
-        <h2>3. Aparência e Comportamento</h2>
-        <p class="field-description">
-          Escolha entre o visual escuro ou claro, ajuste a transparência do modal centralizado e defina se o ícone deve aparecer ao selecionar palavras na página.
-        </p>
-
-        <div class="appearance-grid">
-          <div class="appearance-field">
-            <label for="themeSelect" class="field-label">Esquema de cores</label>
-            <select id="themeSelect" class="select-input">
-              <option value="dark">Escuro</option>
-              <option value="light">Claro</option>
-            </select>
-          </div>
-
-          <div class="appearance-field">
-            <div class="slider-header">
-              <label for="modalOpacityInput" class="field-label">Opacidade do modal centralizado</label>
-              <span id="modalOpacityValue" class="slider-value">88%</span>
-            </div>
-            <input
-              type="range"
-              id="modalOpacityInput"
-              class="range-input"
-              min="65"
-              max="100"
-              value="88"
-            >
-          </div>
-        </div>
-
-        <label class="toggle-row" for="showSelectionIconInput">
-          <div class="toggle-text">
-            <span class="toggle-title">Mostrar ícone ao selecionar texto na página</span>
-            <span class="toggle-subtitle">
-              Quando desativado, o ícone flutuante não aparece ao selecionar palavras, mas você continua podendo traduzir pelo atalho ou pelo botão direito do mouse.
-            </span>
-          </div>
-          <input
-            type="checkbox"
-            id="showSelectionIconInput"
-            class="toggle-checkbox"
-            checked
-          >
-        </label>
-      </section>
-
-      <hr class="divider">
-
-      <!-- Seção 4: Atalhos do Teclado -->
-      <section class="form-section">
-        <h2>4. Atalhos do Teclado</h2>
-        <p class="field-description">
-          Clique em qualquer um dos campos abaixo e pressione a combinação de teclas desejada. Os atalhos configurados aqui ficam sincronizados com os atalhos do navegador.
-        </p>
-
-        <div class="shortcuts-grid">
-          <div class="shortcut-card">
-            <div class="section-header">
-              <label for="shortcutInput" class="field-label">Modal Centralizado e Tradução Rápida</label>
-              <button type="button" id="resetShortcutBtn" class="link-btn">Restaurar Alt+T</button>
-            </div>
-            <p class="shortcut-help">
-              Abre e fecha o modal centralizado na página ou traduz o texto selecionado na hora.
-            </p>
-            <input
-              type="text"
-              id="shortcutInput"
-              class="text-input"
-              placeholder="Pressione as teclas, como Alt+T"
-              value="Alt+T"
-            >
-          </div>
-
-          <div class="shortcut-card">
-            <div class="section-header">
-              <label for="sidebarShortcutInput" class="field-label">Painel Lateral do Navegador</label>
-              <button type="button" id="resetSidebarShortcutBtn" class="link-btn">Restaurar Alt+Shift+T</button>
-            </div>
-            <p class="shortcut-help">
-              Abre o tradutor no painel lateral nativo do navegador.
-            </p>
-            <input
-              type="text"
-              id="sidebarShortcutInput"
-              class="text-input"
-              placeholder="Pressione as teclas, como Alt+Shift+T"
-              value="Alt+Shift+T"
-            >
-          </div>
-        </div>
-
-        <div class="browser-shortcut-notice">
-          <div class="browser-shortcut-text">
-            <strong>Gerenciador de atalhos do navegador:</strong>
-            Você também pode visualizar ou alterar os atalhos diretamente na página padrão de atalhos de extensões do seu navegador.
-          </div>
-          <button type="button" id="openBrowserShortcutsBtn" class="secondary-btn">
-            Abrir gerenciador de atalhos
+        <!-- Rodapé de Navegação entre Etapas -->
+        <footer class="wizard-footer">
+          <button type="button" id="wizardPrevStepBtn" class="secondary-btn wizard-nav-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            <span>Etapa anterior</span>
           </button>
-        </div>
-      </section>
 
-      <footer class="form-footer">
-        <span id="saveStatusFeedback" class="save-feedback hidden" role="status"></span>
-        <button type="submit" id="saveOptionsBtn" class="primary-btn">
-          Salvar Opções
-        </button>
-      </footer>
-    </form>
-  </main>
+          <span id="wizardStepCounterLabel" class="wizard-step-counter">Etapa 1 de 4</span>
 
-  <script src="../shared/constants.js"></script>
-  <script src="../shared/languages.js"></script>
-  <script src="../shared/storage.js"></script>
-  <script src="options.js"></script>
-</body>
+          <button type="button" id="wizardNextStepBtn" class="primary-wizard-btn wizard-nav-btn">
+            <span id="wizardNextBtnText">Próxima etapa</span>
+            <svg id="wizardNextBtnIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <script src="../shared/constants.js"></script>
+    <script src="../shared/languages.js"></script>
+    <script src="../shared/providers.js"></script>
+    <script src="../shared/storage.js"></script>
+    <script src="options.js"></script>
+  </body>
 </html>

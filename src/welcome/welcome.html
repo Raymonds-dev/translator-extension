@@ -1,79 +1,179 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bem-vindo ao Tradutor Rápido</title>
-  <link rel="stylesheet" href="welcome.css">
-</head>
-<body data-theme="dark">
-  <main class="welcome-container">
-    <header class="top-bar">
-      <div class="brand">
-        <img src="../../assets/icons/icon-48.svg" alt="Ícone do Tradutor Rápido" class="brand-logo">
-        <span class="brand-name">Tradutor Rápido</span>
-      </div>
-      <button type="button" id="themeToggleBtn" class="theme-btn" title="Alternar tema claro ou escuro">
-        Alternar tema
-      </button>
-    </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bem-vindo ao TraduzAí</title>
+    <link rel="stylesheet" href="welcome.css" />
+  </head>
+  <body data-theme="dark">
+    <main class="welcome-container">
+      <!-- Cabeçalho -->
+      <header class="top-bar">
+        <div class="brand">
+          <img src="../../assets/icons/icon-48.svg" alt="Logo do TraduzAí" class="brand-logo" />
+          <div class="brand-text">
+            <div class="brand-title-row">
+              <span class="brand-name">TraduzAí</span>
+              <span class="brand-pill">Pronto para usar</span>
+            </div>
+            <span class="brand-tagline">Seu parceiro leve de leitura e escrita em outros idiomas</span>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button type="button" id="themeToggleBtn" class="ghost-btn" title="Alternar entre tema escuro e claro">Tema Claro</button>
+          <button type="button" id="openOptionsTopBtn" class="primary-outline-btn">Configurações</button>
+        </div>
+      </header>
 
-    <section class="hero-card">
-      <h1>Bem-vindo ao Tradutor Rápido</h1>
-      <p class="lead">
-        Uma ferramenta simples e leve para você entender e escrever palavras ou frases em outros idiomas sem perder o foco na sua leitura.
-      </p>
+      <!-- Hero + Configuração Rápida em 1 Clique -->
+      <section class="hero-card">
+        <div class="hero-content">
+          <span class="eyebrow-badge">Zero cadastro · Zero complicação</span>
+          <h1>
+            Selecionou, traduziu.
+            <br />
+            Sem perder o fio da meada.
+          </h1>
+          <p class="lead">
+            O
+            <strong>TraduzAí</strong>
+            foi feito para consultas rápidas de palavras, expressões e frases enquanto você navega — sem recarregar nem bagunçar o visual da página inteira.
+          </p>
+        </div>
 
-      <div class="notice-box">
-        <strong>Importante sobre como funciona</strong>
-        <p>
-          Esta extensão <strong>não traduz páginas inteiras</strong> de uma vez. Ela foi criada especialmente para <strong>consultas rápidas</strong> de palavras, frases ou trechos que você selecionar ou quiser escrever no dia a dia.
-        </p>
-      </div>
-    </section>
+        <!-- Barra de Setup Rápido -->
+        <div class="quick-setup-box">
+          <div class="quick-setup-header">
+            <strong>Deixe do seu jeito em 2 segundos:</strong>
+            <span id="quickSaveBadge" class="quick-save-badge">Tudo pronto para usar</span>
+          </div>
+          <div class="quick-setup-grid">
+            <div class="setup-field">
+              <label for="welcomeBaseLangSelect">Qual é o seu Idioma Mãe?</label>
+              <select id="welcomeBaseLangSelect" class="setup-select"></select>
+            </div>
+            <div class="setup-field">
+              <label for="welcomeProviderSelect">Fonte de tradução preferida</label>
+              <select id="welcomeProviderSelect" class="setup-select"></select>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    <section class="steps-grid">
-      <article class="step-card">
-        <div class="step-number">1</div>
-        <h2>Selecione qualquer trecho</h2>
-        <p>
-          Ao selecionar uma palavra ou frase em qualquer site, um pequeno ícone azul aparece ao lado do texto. Basta clicar nele para abrir a tradução no centro da tela.
-        </p>
-      </article>
+      <!-- Os 3 Jeitos de Usar -->
+      <section class="features-section">
+        <h2 class="section-title">3 jeitos práticos de usar no dia a dia</h2>
+        <div class="steps-grid">
+          <article class="step-card">
+            <div class="step-icon-row">
+              <span class="step-number">1</span>
+              <div class="kbd-group">
+                <kbd>Alt</kbd>
+                <span>+</span>
+                <kbd>T</kbd>
+              </div>
+            </div>
+            <h3>Janela Flutuante na Página</h3>
+            <p>
+              Selecione um texto e clique no ícone azul. Você pode
+              <strong>arrastar a janela pelo topo</strong>
+              para colocá-la onde preferir na tela.
+            </p>
+          </article>
 
-      <article class="step-card">
-        <div class="step-number">2</div>
-        <h2>Use o atalho rápido</h2>
-        <p>
-          Aperte <strong>Alt + T</strong> com um texto selecionado para traduzir na hora, ou sem selecionar nada para abrir a caixa e digitar o que quiser. Aperte <strong>Alt + T</strong> novamente para fechar.
-        </p>
-      </article>
+          <article class="step-card">
+            <div class="step-icon-row">
+              <span class="step-number">2</span>
+              <div class="kbd-group">
+                <kbd>Alt</kbd>
+                <span>+</span>
+                <kbd>Shift</kbd>
+                <span>+</span>
+                <kbd>T</kbd>
+              </div>
+            </div>
+            <h3>Painel Lateral Inteligente</h3>
+            <p>
+              Ideal para leituras longas. Com o painel lateral aberto,
+              <strong>basta selecionar qualquer frase na página</strong>
+              que ela é enviada e traduzida lá automaticamente.
+            </p>
+          </article>
 
-      <article class="step-card">
-        <div class="step-number">3</div>
-        <h2>Inverta e edite à vontade</h2>
-        <p>
-          Quer responder em outra língua? Clique no botão de inverter idiomas para mandar a frase traduzida para a caixa de texto, edite como preferir e copie com um clique.
-        </p>
-      </article>
-    </section>
+          <article class="step-card">
+            <div class="step-icon-row">
+              <span class="step-number">3</span>
+              <span class="feature-mini-pill">Até 20 itens</span>
+            </div>
+            <h3>Histórico &amp; Edição Rápida</h3>
+            <p>
+              Ao digitar palavras novas, use o botão
+              <strong>Traduzir</strong>
+              sem gastar requisições a cada letra, ou consulte o
+              <strong>Histórico</strong>
+              para editar e copiar em 1 clique.
+            </p>
+          </article>
+        </div>
+      </section>
 
-    <section class="cta-card">
-      <div class="cta-text">
-        <h2>Primeiro passo antes de começar</h2>
-        <p>
-          Para ativar as traduções, escolha seu <strong>Idioma Mãe</strong> e adicione sua chave de acesso do Google nas Opções da extensão.
-        </p>
-      </div>
-      <button type="button" id="openOptionsBtn" class="primary-btn">
-        Ir para as Opções
-      </button>
-    </section>
-  </main>
+      <!-- Playground: Teste Aqui Mesmo -->
+      <section class="playground-card">
+        <div class="playground-header">
+          <div>
+            <span class="section-tag">Playground</span>
+            <h2>Experimente agora mesmo nesta tela</h2>
+            <p class="playground-sub">
+              <strong>Selecione qualquer trecho abaixo com o mouse</strong>
+              para ver o ícone azul aparecer, ou clique em
+              <em>"Traduzir agora"</em>
+              para abrir a janela flutuante:
+            </p>
+          </div>
+          <button type="button" id="openFreeModalBtn" class="play-cta-btn">
+            Abrir TraduzAí:
+            <kbd>Alt</kbd>
+            +
+            <kbd>T</kbd>
+          </button>
+        </div>
 
-  <script src="../shared/constants.js"></script>
-  <script src="../shared/languages.js"></script>
-  <script src="../shared/storage.js"></script>
-  <script src="welcome.js"></script>
-</body>
+        <div class="samples-grid">
+          <article class="sample-item">
+            <div class="sample-top">
+              <span class="sample-lang-tag">EN · Inglês</span>
+              <button type="button" class="try-sample-btn" data-sample="Simplicity is about subtracting the obvious and adding the meaningful.">Traduzir agora</button>
+            </div>
+            <p class="selectable-quote">"Simplicity is about subtracting the obvious and adding the meaningful."</p>
+          </article>
+
+          <article class="sample-item">
+            <div class="sample-top">
+              <span class="sample-lang-tag">ES · Espanhol</span>
+              <button type="button" class="try-sample-btn" data-sample="El conocimiento de idiomas es la puerta a la sabiduría y a nuevas amistades.">Traduzir agora</button>
+            </div>
+            <p class="selectable-quote">"El conocimiento de idiomas es la puerta a la sabiduría y a nuevas amistades."</p>
+          </article>
+
+          <article class="sample-item">
+            <div class="sample-top">
+              <span class="sample-lang-tag">FR · Francês</span>
+              <button type="button" class="try-sample-btn" data-sample="Petit à petit, l'oiseau fait son nid. Chaque mot appris compte.">Traduzir agora</button>
+            </div>
+            <p class="selectable-quote">"Petit à petit, l'oiseau fait son nid. Chaque mot appris compte."</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script src="../shared/constants.js"></script>
+    <script src="../shared/languages.js"></script>
+    <script src="../shared/providers.js"></script>
+    <script src="../shared/storage.js"></script>
+    <script src="../content/widget-styles.js"></script>
+    <script src="../content/translator-widget.js"></script>
+    <script src="../content/content.js"></script>
+    <script src="welcome.js"></script>
+  </body>
 </html>
