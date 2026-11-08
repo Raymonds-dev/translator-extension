@@ -16,6 +16,7 @@
     normalizeLanguageCode,
     getLanguageLabel
   } = namespace.Languages;
+  const { PROVIDER_CATALOG, getProviderMetadata, normalizeProviderId } = namespace.Providers;
   const { saveUserPreferences } = namespace.Storage;
 
   const COPY_ICON_SVG = `
@@ -33,18 +34,43 @@
     <span>Copiado</span>
   `;
 
+  const PENCIL_ICON_SVG = `
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 20h9"></path>
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+    </svg>
+    <span>Editar</span>
+  `;
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const isSidebarView = urlParams.get("view") === "sidebar";
+
   const elements = {
+    quickProviderSelect: document.getElementById("quickProviderSelect"),
+    historyToggleBtn: document.getElementById("historyToggleBtn"),
     themeToggleBtn: document.getElementById("themeToggleBtn"),
     openSettingsHeaderBtn: document.getElementById("openSettingsHeaderBtn"),
+    translatorView: document.getElementById("translatorView"),
+    historyView: document.getElementById("historyView"),
+    historyCountLabel: document.getElementById("historyCountLabel"),
+    clearHistoryBtn: document.getElementById("clearHistoryBtn"),
+    clearHistoryConfirmGroup: document.getElementById("clearHistoryConfirmGroup"),
+    confirmClearHistoryBtn: document.getElementById("confirmClearHistoryBtn"),
+    cancelClearHistoryBtn: document.getElementById("cancelClearHistoryBtn"),
+    historyList: document.getElementById("historyList"),
     sourceLangBadge: document.getElementById("sourceLangBadge"),
     switchLanguagesBtn: document.getElementById("switchLanguagesBtn"),
     targetLangSelect: document.getElementById("targetLangSelect"),
     sourceInput: document.getElementById("sourceInput"),
     tempSessionIndicator: document.getElementById("tempSessionIndicator"),
     charCounter: document.getElementById("charCounter"),
+    offlineProgressContainer: document.getElementById("offlineProgressContainer"),
+    offlineProgressText: document.getElementById("offlineProgressText"),
+    offlineProgressFill: document.getElementById("offlineProgressFill"),
     statusBanner: document.getElementById("statusBanner"),
     statusBannerText: document.getElementById("statusBannerText"),
     statusActionBtn: document.getElementById("statusActionBtn"),
+    statusSecondaryBtn: document.getElementById("statusSecondaryBtn"),
     translatedOutput: document.getElementById("translatedOutput"),
     detectedHint: document.getElementById("detectedHint"),
     copyBtn: document.getElementById("copyBtn")
@@ -52,6 +78,9 @@
 
   let baseLanguage = DEFAULTS.BASE_LANGUAGE;
   let currentTheme = DEFAULTS.THEME;
+  let activeProvider = DEFAULTS.PROVIDER;
+  let historyItems = [];
+  let isHistoryViewOpen = false;
   let typingDebounceTimer = null;
   let copyFeedbackTimer = null;
   let activeRequestId = 0;
@@ -72,6 +101,24 @@
     document.body.setAttribute("data-theme", currentTheme);
   }
 
+  function populateProviderSelect() {
+    elements.quickProviderSelect.innerHTML = "";
+    for (const provider of PROVIDER_CATALOG) {
+      const optionEl = document.createElement("option");
+      optionEl.value = provider.id;
+      optionEl.textContent = provider.name.split(" (")[0];
+      elements.quickProviderSelect.appendChild(optionEl);
+    }
+    elements.quickProviderSelect.value = activeProvider;
+  }
+
+  function updateActiveProviderControl(providerId) {
+    activeProvider = normalizeProviderId(providerId, DEFAULTS.PROVIDER);
+    const meta = getProviderMetadata(activeProvider);
+    elements.quickProviderSelect.value = activeProvider;
+    elements.quickProviderSelect.title = `Fonte ativa: ${meta.name}`;
+  }
+
   function populateTargetLanguageSelect() {
     elements.targetLangSelect.innerHTML = "";
     for (const language of SUPPORTED_LANGUAGES) {
@@ -79,6 +126,131 @@
       optionEl.value = language.code;
       optionEl.textContent = language.label;
       elements.targetLangSelect.appendChild(optionEl);
+    }
+  }
+
+  function resetClearHistoryConfirmation() {
+    elements.clearHistoryConfirmGroup.classList.add("hidden");
+    elements.clearHistoryBtn.classList.toggle("hidden", historyItems.length === 0);
+  }
+
+  function setHistoryViewVisible(visible) {
+    isHistoryViewOpen = Boolean(visible);
+    resetClearHistoryConfirmation();
+    elements.translatorView.classList.toggle("hidden", isHistoryViewOpen);
+    elements.historyView.classList.toggle("hidden", !isHistoryViewOpen);
+    elements.historyToggleBtn.classList.toggle("active", isHistoryViewOpen);
+    elements.historyToggleBtn.title = isHistoryViewOpen
+      ? "Voltar para a tradução"
+      : "Histórico de traduções";
+
+    if (isHistoryViewOpen) {
+      renderHistoryList();
+    } else {
+      elements.sourceInput.focus();
+    }
+  }
+
+  function renderHistoryList() {
+    const count = historyItems.length;
+    elements.historyCountLabel.textContent = `Últimas traduções (${count}/${LIMITS.MAX_HISTORY_ITEMS})`;
+    resetClearHistoryConfirmation();
+    elements.historyList.innerHTML = "";
+
+    if (count === 0) {
+      const emptyEl = document.createElement("div");
+      emptyEl.className = "history-empty";
+      emptyEl.textContent = "Nenhuma tradução no histórico ainda. As próximas consultas aparecerão aqui.";
+      elements.historyList.appendChild(emptyEl);
+      return;
+    }
+
+    for (const item of historyItems) {
+      const card = document.createElement("article");
+      card.className = "history-card";
+
+      const header = document.createElement("div");
+      header.className = "history-card-header";
+
+      const langPair = document.createElement("span");
+      langPair.className = "history-lang-pair";
+      const providerMeta = getProviderMetadata(item.provider);
+      langPair.textContent = `${getLanguageLabel(item.sourceLanguage)} → ${getLanguageLabel(item.targetLanguage)} · ${providerMeta.name.split(" ")[0]}`;
+
+      const actions = document.createElement("div");
+      actions.className = "history-card-actions";
+
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "history-item-btn";
+      editBtn.title = "Mover tradução para o texto livre para editar";
+      editBtn.innerHTML = PENCIL_ICON_SVG;
+      editBtn.addEventListener("click", () => {
+        handleEditHistoryItem(item);
+      });
+
+      const copyItemBtn = document.createElement("button");
+      copyItemBtn.type = "button";
+      copyItemBtn.className = "history-item-btn";
+      copyItemBtn.title = "Copiar tradução novamente";
+      copyItemBtn.innerHTML = COPY_ICON_SVG;
+      copyItemBtn.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(item.translatedText);
+          copyItemBtn.innerHTML = COPIED_ICON_SVG;
+          copyItemBtn.classList.add("copied");
+          setTimeout(() => {
+            copyItemBtn.innerHTML = COPY_ICON_SVG;
+            copyItemBtn.classList.remove("copied");
+          }, LIMITS.COPY_FEEDBACK_DURATION_MS);
+        } catch (_err) {
+          // Ignora erro de clipboard
+        }
+      });
+
+      actions.appendChild(editBtn);
+      actions.appendChild(copyItemBtn);
+      header.appendChild(langPair);
+      header.appendChild(actions);
+
+      const sourceDiv = document.createElement("div");
+      sourceDiv.className = "history-source-text";
+      sourceDiv.textContent = item.sourceText;
+
+      const translatedDiv = document.createElement("div");
+      translatedDiv.className = "history-translated-text";
+      translatedDiv.textContent = item.translatedText;
+
+      card.appendChild(header);
+      card.appendChild(sourceDiv);
+      card.appendChild(translatedDiv);
+      elements.historyList.appendChild(card);
+    }
+  }
+
+  function handleEditHistoryItem(item) {
+    setHistoryViewVisible(false);
+    session.sourceLanguage = normalizeLanguageCode(item.targetLanguage);
+    session.targetLanguage = normalizeLanguageCode(item.sourceLanguage);
+    session.hasManualTargetOverride = true;
+    session.sourceText = item.translatedText;
+    elements.sourceInput.value = item.translatedText;
+    elements.sourceInput.focus();
+    renderSession();
+
+    clearTimeout(typingDebounceTimer);
+    executeTranslation({ allowAutoRedirect: false });
+  }
+
+  async function handleConfirmClearHistory() {
+    try {
+      await browser.runtime.sendMessage({
+        type: MESSAGE_TYPES.CLEAR_TRANSLATION_HISTORY
+      });
+      historyItems = [];
+      renderHistoryList();
+    } catch (_err) {
+      // Ignora erro
     }
   }
 
@@ -132,6 +304,7 @@
     if (
       status === SESSION_STATUS.MISSING_API_KEY ||
       status === SESSION_STATUS.INVALID_API_KEY ||
+      status === SESSION_STATUS.PROVIDER_LIMIT_ERROR ||
       status === SESSION_STATUS.TEXT_TOO_LONG ||
       status === SESSION_STATUS.NETWORK_ERROR
     ) {
@@ -139,17 +312,27 @@
       elements.statusBannerText.textContent = session.errorMessage || "";
 
       if (status === SESSION_STATUS.MISSING_API_KEY || status === SESSION_STATUS.INVALID_API_KEY) {
-        elements.statusActionBtn.textContent = UI_MESSAGES.OPEN_OPTIONS_BUTTON;
+        elements.statusActionBtn.textContent = UI_MESSAGES.QUICK_SWITCH_BUTTON;
         elements.statusActionBtn.classList.remove("hidden");
+        elements.statusSecondaryBtn.textContent = UI_MESSAGES.OPEN_OPTIONS_BUTTON;
+        elements.statusSecondaryBtn.classList.remove("hidden");
+      } else if (status === SESSION_STATUS.PROVIDER_LIMIT_ERROR) {
+        elements.statusActionBtn.textContent = UI_MESSAGES.QUICK_SWITCH_BUTTON;
+        elements.statusActionBtn.classList.remove("hidden");
+        elements.statusSecondaryBtn.textContent = UI_MESSAGES.OPEN_OPTIONS_BUTTON;
+        elements.statusSecondaryBtn.classList.remove("hidden");
       } else if (status === SESSION_STATUS.NETWORK_ERROR) {
         elements.statusActionBtn.textContent = UI_MESSAGES.RETRY_BUTTON;
         elements.statusActionBtn.classList.remove("hidden");
+        elements.statusSecondaryBtn.classList.add("hidden");
       } else {
         elements.statusActionBtn.classList.add("hidden");
+        elements.statusSecondaryBtn.classList.add("hidden");
       }
     } else {
       elements.statusBanner.classList.add("hidden");
       elements.statusActionBtn.classList.add("hidden");
+      elements.statusSecondaryBtn.classList.add("hidden");
     }
 
     if (status === SESSION_STATUS.LOADING) {
@@ -164,7 +347,8 @@
       elements.translatedOutput.textContent = session.translatedText;
       elements.translatedOutput.classList.remove("placeholder");
       elements.copyBtn.classList.remove("hidden");
-      elements.detectedHint.textContent = `${getLanguageLabel(session.detectedSourceLanguage || session.sourceLanguage)} → ${getLanguageLabel(session.targetLanguage)}`;
+      const meta = getProviderMetadata(activeProvider);
+      elements.detectedHint.textContent = `${getLanguageLabel(session.detectedSourceLanguage || session.sourceLanguage)} → ${getLanguageLabel(session.targetLanguage)} · via ${meta.name}`;
       return;
     }
 
@@ -221,6 +405,8 @@
       return;
     }
 
+    elements.offlineProgressContainer.classList.add("hidden");
+
     if (!response || !response.ok) {
       session.status = response?.status || SESSION_STATUS.NETWORK_ERROR;
       session.errorMessage = response?.errorMessage || UI_MESSAGES.NETWORK_ERROR;
@@ -234,8 +420,53 @@
     if (response.data.effectiveTargetLanguage) {
       session.targetLanguage = normalizeLanguageCode(response.data.effectiveTargetLanguage);
     }
+    if (response.data.provider) {
+      updateActiveProviderControl(response.data.provider);
+    }
+    if (Array.isArray(response.data.history)) {
+      historyItems = response.data.history;
+    }
     session.errorMessage = null;
     renderSession();
+  }
+
+  function handleIncomingSidebarSelection(selectedText) {
+    const trimmed = typeof selectedText === "string" ? selectedText.trim() : "";
+    if (!trimmed) {
+      return;
+    }
+
+    if (isHistoryViewOpen) {
+      setHistoryViewVisible(false);
+    }
+
+    clearTimeout(typingDebounceTimer);
+    session.sourceText = trimmed;
+    session.sourceLanguage = DEFAULTS.AUTO_LANGUAGE;
+    session.detectedSourceLanguage = null;
+    if (!session.hasManualTargetOverride) {
+      session.targetLanguage = baseLanguage;
+    }
+    elements.sourceInput.value = trimmed;
+    renderSession();
+    executeTranslation({ allowAutoRedirect: !session.hasManualTargetOverride });
+  }
+
+  function setupSidebarLiveConnection() {
+    if (!isSidebarView || typeof browser === "undefined" || !browser.runtime || !browser.runtime.connect) {
+      return;
+    }
+
+    try {
+      const port = browser.runtime.connect({ name: "sidebar-live-channel" });
+      port.onMessage.addListener((message) => {
+        if (message && message.type === MESSAGE_TYPES.PAGE_TEXT_SELECTED) {
+          handleIncomingSidebarSelection(message.payload?.text);
+        }
+      });
+    } catch (_err) {
+      // Ignora erro caso connect não esteja disponível
+    }
   }
 
   function handleSourceInputChange() {
@@ -303,6 +534,23 @@
     }
   }
 
+  async function handleQuickProviderChange() {
+    const chosenProvider = normalizeProviderId(elements.quickProviderSelect.value, DEFAULTS.PROVIDER);
+    updateActiveProviderControl(chosenProvider);
+    try {
+      await browser.runtime.sendMessage({
+        type: MESSAGE_TYPES.QUICK_SWITCH_PROVIDER,
+        payload: { provider: chosenProvider }
+      });
+      if (session.sourceText.trim()) {
+        clearTimeout(typingDebounceTimer);
+        await executeTranslation({ allowAutoRedirect: false });
+      }
+    } catch (_err) {
+      // Ignora erro
+    }
+  }
+
   async function handleCopyClick() {
     if (!session.translatedText) {
       return;
@@ -336,12 +584,23 @@
     });
   }
 
-  function handleStatusActionClick() {
+  async function handleStatusActionClick() {
     if (
+      session.status === SESSION_STATUS.PROVIDER_LIMIT_ERROR ||
       session.status === SESSION_STATUS.MISSING_API_KEY ||
       session.status === SESSION_STATUS.INVALID_API_KEY
     ) {
-      openExtensionOptions();
+      try {
+        const switched = await browser.runtime.sendMessage({
+          type: MESSAGE_TYPES.QUICK_SWITCH_PROVIDER
+        });
+        if (switched?.provider) {
+          updateActiveProviderControl(switched.provider);
+        }
+        await executeTranslation({ allowAutoRedirect: false });
+      } catch (_err) {
+        openExtensionOptions();
+      }
       return;
     }
 
@@ -362,22 +621,25 @@
     session.status = SESSION_STATUS.IDLE;
     session.errorMessage = null;
     elements.sourceInput.value = "";
+    elements.offlineProgressContainer.classList.add("hidden");
     renderSession();
   }
 
   async function bootstrapPopup() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get("view") === "sidebar") {
+    if (isSidebarView) {
       document.body.setAttribute("data-view", "sidebar");
     }
 
+    populateProviderSelect();
     populateTargetLanguageSelect();
     clearPopupSession();
 
     let bootstrap = {
+      provider: DEFAULTS.PROVIDER,
       hasApiKey: false,
       baseLanguage: DEFAULTS.BASE_LANGUAGE,
-      theme: DEFAULTS.THEME
+      theme: DEFAULTS.THEME,
+      history: []
     };
 
     try {
@@ -392,8 +654,10 @@
     }
 
     applyTheme(bootstrap.theme);
+    updateActiveProviderControl(bootstrap.provider);
     baseLanguage = normalizeLanguageCode(bootstrap.baseLanguage);
     session.targetLanguage = baseLanguage;
+    historyItems = Array.isArray(bootstrap.history) ? bootstrap.history : [];
 
     const selectedText = await fetchActiveTabSelection();
     if (selectedText) {
@@ -402,14 +666,6 @@
     }
 
     elements.sourceInput.focus();
-
-    if (!bootstrap.hasApiKey) {
-      session.status = SESSION_STATUS.MISSING_API_KEY;
-      session.errorMessage = UI_MESSAGES.MISSING_API_KEY;
-      renderSession();
-      return;
-    }
-
     renderSession();
 
     if (session.sourceText.trim()) {
@@ -417,6 +673,66 @@
     }
   }
 
+  if (typeof browser !== "undefined" && browser.runtime && browser.runtime.onMessage) {
+    browser.runtime.onMessage.addListener((message) => {
+      if (!message) {
+        return;
+      }
+
+      if (isSidebarView && message.type === MESSAGE_TYPES.PAGE_TEXT_SELECTED) {
+        handleIncomingSidebarSelection(message.payload?.text);
+        return;
+      }
+
+      if (message.type !== MESSAGE_TYPES.OFFLINE_DOWNLOAD_PROGRESS) {
+        return;
+      }
+
+      const payload = message.payload || {};
+      const pct = Number(payload.progress) || 0;
+      elements.offlineProgressContainer.classList.remove("hidden");
+      elements.offlineProgressText.textContent =
+        payload.message || `Baixando pacote de tradução: ${pct}%...`;
+      elements.offlineProgressFill.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+
+      if (pct >= 100) {
+        setTimeout(() => {
+          elements.offlineProgressContainer.classList.add("hidden");
+        }, 700);
+      }
+    });
+  }
+
+  if (typeof browser !== "undefined" && browser.storage && browser.storage.onChanged) {
+    browser.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== "local") {
+        return;
+      }
+      if (changes[STORAGE_KEYS.TRANSLATION_HISTORY]) {
+        historyItems = changes[STORAGE_KEYS.TRANSLATION_HISTORY].newValue || [];
+        if (isHistoryViewOpen) {
+          renderHistoryList();
+        }
+      }
+      if (changes[STORAGE_KEYS.PROVIDER]) {
+        updateActiveProviderControl(changes[STORAGE_KEYS.PROVIDER].newValue);
+      }
+      if (changes[STORAGE_KEYS.THEME]) {
+        applyTheme(changes[STORAGE_KEYS.THEME].newValue);
+      }
+    });
+  }
+
+  elements.quickProviderSelect.addEventListener("change", handleQuickProviderChange);
+  elements.historyToggleBtn.addEventListener("click", () => {
+    setHistoryViewVisible(!isHistoryViewOpen);
+  });
+  elements.clearHistoryBtn.addEventListener("click", () => {
+    elements.clearHistoryBtn.classList.add("hidden");
+    elements.clearHistoryConfirmGroup.classList.remove("hidden");
+  });
+  elements.cancelClearHistoryBtn.addEventListener("click", resetClearHistoryConfirmation);
+  elements.confirmClearHistoryBtn.addEventListener("click", handleConfirmClearHistory);
   elements.themeToggleBtn.addEventListener("click", handleThemeToggle);
   elements.sourceInput.addEventListener("input", handleSourceInputChange);
   elements.switchLanguagesBtn.addEventListener("click", handleSwitchLanguages);
@@ -424,16 +740,20 @@
   elements.copyBtn.addEventListener("click", handleCopyClick);
   elements.openSettingsHeaderBtn.addEventListener("click", openExtensionOptions);
   elements.statusActionBtn.addEventListener("click", handleStatusActionClick);
+  elements.statusSecondaryBtn.addEventListener("click", openExtensionOptions);
 
-  window.addEventListener("pagehide", clearPopupSession);
-  window.addEventListener("beforeunload", clearPopupSession);
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      clearPopupSession();
-    } else {
-      bootstrapPopup();
-    }
-  });
+  if (!isSidebarView) {
+    window.addEventListener("pagehide", clearPopupSession);
+    window.addEventListener("beforeunload", clearPopupSession);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        clearPopupSession();
+      } else {
+        bootstrapPopup();
+      }
+    });
+  }
 
+  setupSidebarLiveConnection();
   bootstrapPopup();
 })(typeof globalThis !== "undefined" ? globalThis : window);
