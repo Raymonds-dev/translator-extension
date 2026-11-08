@@ -1377,6 +1377,14 @@
       return { ok: true };
     }
 
+    if (typeof commandName === "string" && commandName.startsWith("_execute_")) {
+      return {
+        ok: true,
+        isSystemCommand: true,
+        message: "No Firefox, atalhos nativos (_execute_) devem ser personalizados em about:addons -> Atalhos de extensão."
+      };
+    }
+
     try {
       await browser.commands.update({
         name: commandName,
@@ -1402,7 +1410,11 @@
     await saveUserPreferences({
       [storageKey]: newShortcut,
     });
-    showSaveFeedback(`Atalho ${newShortcut} salvo`);
+    if (result.isSystemCommand) {
+      showSaveFeedback(result.message, false);
+    } else {
+      showSaveFeedback(`Atalho ${newShortcut} salvo`);
+    }
   }
 
   function bindShortcutRecorder(inputElement, previewElement, commandName, storageKey) {
