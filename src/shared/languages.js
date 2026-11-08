@@ -28,12 +28,12 @@
   );
 
   const LANGUAGE_PATTERNS = Object.freeze({
-    pt: /\b(não|você|para|com|uma|está|são|isso|muito|também|então|porque|quando|onde|fazer|obrigado|olá|bom|dia|noite|tradução|palavra)\b|[ãõç]/i,
-    en: /\b(the|and|that|have|for|not|with|you|this|but|his|from|they|say|her|she|will|one|all|would|there|their|what|about|which|when|make|can|like|time|just|him|know|take|people|into|year|your|good|some|could|them|see|other|than|then|now|look|only|come|its|over|think|also|hello|world)\b/i,
-    es: /\b(que|para|como|pero|más|este|esta|esto|son|por|una|con|del|los|las|todo|también|muy|hacer|hola|gracias|buenos|días)\b|[ñ¿¡]/i,
-    fr: /\b(les|des|est|pour|dans|une|que|pas|plus|avec|sur|sont|mais|comme|tout|cette|nous|vous|bonjour|merci|être)\b|[œæ]/i,
-    de: /\b(der|die|das|und|in|den|von|zu|mit|sich|auf|für|nicht|ist|dem|als|auch|es|an|werden|aus|er|hat|dass|sie|nach|wird|bei|einer|um|am|sind|noch|wie|einem|über|einen|danke|hallo)\b|[äöüß]/i,
-    it: /\b(che|non|per|una|con|del|della|sono|come|più|questo|questa|anche|tutto|molto|fare|ciao|grazie|buongiorno)\b/i
+    pt: /\b(o|a|os|as|um|uma|uns|umas|de|do|da|dos|das|em|no|na|nos|nas|por|pelo|pela|pelos|pelas|para|pra|com|sem|sob|sobre|que|se|como|mas|e|ou|já|mais|muito|muita|muitos|muitas|tudo|nada|algo|este|esta|esse|essa|isto|isso|aquilo|eu|você|ele|ela|nós|eles|elas|meu|minha|seu|sua|nosso|nossa|dele|dela|quem|qual|onde|quando|porque|porquê|aqui|ali|lá|agora|hoje|ontem|amanhã|bem|sempre|nunca|sim|não|olá|oi|bom|boa|obrigado|obrigada|fazer|estar|está|estão|ser|é|são|foi|era|vai|ter|tem|têm|tinha|há|pode|podem|também|então|ainda)\b|[áéíóúâêôãõç]/i,
+    en: /\b(the|and|that|have|for|not|with|you|this|but|his|from|they|say|her|she|will|one|all|would|there|their|what|about|which|when|make|can|like|time|just|him|know|take|people|into|year|your|good|some|could|them|see|other|than|then|now|look|only|come|its|over|think|also|hello|world|is|are|was|were|been|has|had|do|does|did|to|in|on|at|by|of|it)\b/i,
+    es: /\b(el|la|los|las|un|una|unos|unas|de|del|en|por|para|con|sin|sobre|que|si|como|pero|más|este|esta|esto|son|todo|también|muy|hacer|hola|gracias|buenos|días|noches|tardes|yo|tú|él|ella|nosotros|ellos|ellas|mi|tu|su|aquí|ahora|bien|siempre|nunca|estar|está|ser|es|fue|tener|tiene|hay|puede)\b|[áéíóúüñ¿¡]/i,
+    fr: /\b(le|la|les|un|une|des|du|de|dans|en|pour|par|sur|avec|sans|sous|est|sont|que|qui|quoi|pas|plus|mais|comme|tout|tous|toute|cette|ce|cet|ces|nous|vous|ils|elles|bonjour|merci|être|avoir|fait|faire|aussi|bien|ici|maintenant)\b|[àâæçéèêëîïôœùûüÿ]/i,
+    de: /\b(der|die|das|den|dem|des|ein|eine|einer|einem|einen|und|in|von|zu|mit|sich|auf|für|nicht|ist|sind|war|als|auch|es|an|werden|wird|aus|er|sie|hat|dass|nach|bei|um|am|noch|wie|über|danke|hallo|bitte|hier|jetzt|immer|gut)\b|[äöüß]/i,
+    it: /\b(il|lo|la|i|gli|le|un|uno|una|del|dello|della|dei|degli|delle|che|non|per|con|su|tra|fra|sono|come|più|questo|questa|questi|queste|anche|tutto|tutti|molto|fare|fatto|ciao|grazie|buongiorno|buonasera|bene|essere|avere|qui|adesso)\b|[àèéìíîòóùú]/i
   });
 
   function normalizeLanguageCode(rawCode) {
