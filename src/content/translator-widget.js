@@ -75,6 +75,10 @@
       this.isHistoryViewOpen = false;
       this.dragState = null;
 
+      this.boundOnMouseMove = (event) => this.handleDragMouseMove(event);
+      this.boundOnMouseUp = () => this.finishModalDrag();
+      this.boundOnBlur = () => this.finishModalDrag();
+
       this.session = this.createEmptySession();
 
       this.setupStorageSyncListener();
@@ -534,12 +538,44 @@
       });
     }
 
+    handleDragMouseMove(event) {
+      if (!this.dragState) {
+        return;
+      }
+
+      // Se o botão esquerdo do mouse não estiver pressionado, encerra o arraste imediatamente
+      if (typeof event.buttons === "number" && (event.buttons & 1) === 0) {
+        this.finishModalDrag();
+        return;
+      }
+
+      const desiredX = event.clientX - this.dragState.offsetX;
+      const desiredY = event.clientY - this.dragState.offsetY;
+      const clamped = this.clampCoordinatesToViewport(
+        desiredX,
+        desiredY,
+        this.dragState.width,
+        this.dragState.height
+      );
+
+      this.dragState.currentX = clamped.left;
+      this.dragState.currentY = clamped.top;
+      this.dragState.hasMoved = true;
+
+      this.elements.translatorModal.style.left = `${clamped.left}px`;
+      this.elements.translatorModal.style.top = `${clamped.top}px`;
+    }
+
     finishModalDrag() {
       if (!this.dragState) {
         return;
       }
       const finishedDrag = this.dragState;
       this.dragState = null;
+
+      window.removeEventListener("mousemove", this.boundOnMouseMove, true);
+      window.removeEventListener("mouseup", this.boundOnMouseUp, true);
+      window.removeEventListener("blur", this.boundOnBlur);
 
       if (this.elements.translatorModal) {
         this.elements.translatorModal.classList.remove("dragging");
@@ -775,42 +811,10 @@
         translatorModal.classList.add("custom-position", "dragging");
         translatorModal.style.left = `${Math.round(rect.left)}px`;
         translatorModal.style.top = `${Math.round(rect.top)}px`;
-      });
 
-      window.addEventListener("mousemove", (event) => {
-        if (!this.dragState) {
-          return;
-        }
-
-        // Se o botão esquerdo do mouse não estiver pressionado, encerra o arraste imediatamente
-        if (typeof event.buttons === "number" && (event.buttons & 1) === 0) {
-          this.finishModalDrag();
-          return;
-        }
-
-        const desiredX = event.clientX - this.dragState.offsetX;
-        const desiredY = event.clientY - this.dragState.offsetY;
-        const clamped = this.clampCoordinatesToViewport(
-          desiredX,
-          desiredY,
-          this.dragState.width,
-          this.dragState.height
-        );
-
-        this.dragState.currentX = clamped.left;
-        this.dragState.currentY = clamped.top;
-        this.dragState.hasMoved = true;
-
-        translatorModal.style.left = `${clamped.left}px`;
-        translatorModal.style.top = `${clamped.top}px`;
-      }, true);
-
-      window.addEventListener("mouseup", () => {
-        this.finishModalDrag();
-      }, true);
-
-      window.addEventListener("blur", () => {
-        this.finishModalDrag();
+        window.addEventListener("mousemove", this.boundOnMouseMove, true);
+        window.addEventListener("mouseup", this.boundOnMouseUp, true);
+        window.addEventListener("blur", this.boundOnBlur);
       });
 
       quickProviderSelect.addEventListener("change", async () => {
