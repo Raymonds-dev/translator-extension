@@ -43,6 +43,14 @@
     <span>Editar</span>
   `;
 
+  function setElementHtmlSafe(targetElement, htmlString) {
+    targetElement.replaceChildren();
+    const doc = new DOMParser().parseFromString(htmlString.trim(), "text/html");
+    for (const node of Array.from(doc.body.childNodes)) {
+      targetElement.appendChild(document.importNode(node, true));
+    }
+  }
+
   class TranslatorWidget {
     constructor() {
       this.hostElement = null;
@@ -66,6 +74,10 @@
       this.historyItems = [];
       this.isHistoryViewOpen = false;
       this.dragState = null;
+
+      this.boundOnMouseMove = (event) => this.handleDragMouseMove(event);
+      this.boundOnMouseUp = () => this.finishModalDrag();
+      this.boundOnBlur = () => this.finishModalDrag();
 
       this.session = this.createEmptySession();
 
@@ -200,7 +212,7 @@
       wrapper.className = "widget-theme-root";
       wrapper.setAttribute("data-theme", this.theme);
       wrapper.style.setProperty("--modal-alpha", String(this.modalOpacity));
-      wrapper.innerHTML = this.buildWidgetTemplate();
+      setElementHtmlSafe(wrapper, this.buildWidgetTemplate());
 
       this.shadowRoot.appendChild(styleElement);
       this.shadowRoot.appendChild(wrapper);
@@ -427,7 +439,7 @@
       if (!selectEl) {
         return;
       }
-      selectEl.innerHTML = "";
+      selectEl.replaceChildren();
       for (const provider of PROVIDER_CATALOG) {
         const optionEl = document.createElement("option");
         optionEl.value = provider.id;
@@ -526,12 +538,44 @@
       });
     }
 
+    handleDragMouseMove(event) {
+      if (!this.dragState) {
+        return;
+      }
+
+      // Se o botão esquerdo do mouse não estiver pressionado, encerra o arraste imediatamente
+      if (typeof event.buttons === "number" && (event.buttons & 1) === 0) {
+        this.finishModalDrag();
+        return;
+      }
+
+      const desiredX = event.clientX - this.dragState.offsetX;
+      const desiredY = event.clientY - this.dragState.offsetY;
+      const clamped = this.clampCoordinatesToViewport(
+        desiredX,
+        desiredY,
+        this.dragState.width,
+        this.dragState.height
+      );
+
+      this.dragState.currentX = clamped.left;
+      this.dragState.currentY = clamped.top;
+      this.dragState.hasMoved = true;
+
+      this.elements.translatorModal.style.left = `${clamped.left}px`;
+      this.elements.translatorModal.style.top = `${clamped.top}px`;
+    }
+
     finishModalDrag() {
       if (!this.dragState) {
         return;
       }
       const finishedDrag = this.dragState;
       this.dragState = null;
+
+      window.removeEventListener("mousemove", this.boundOnMouseMove, true);
+      window.removeEventListener("mouseup", this.boundOnMouseUp, true);
+      window.removeEventListener("blur", this.boundOnBlur);
 
       if (this.elements.translatorModal) {
         this.elements.translatorModal.classList.remove("dragging");
@@ -575,7 +619,7 @@
       const count = this.historyItems.length;
       this.elements.historyCountLabel.textContent = `Últimas traduções (${count}/${LIMITS.MAX_HISTORY_ITEMS})`;
       this.resetClearHistoryConfirmation();
-      this.elements.historyList.innerHTML = "";
+      this.elements.historyList.replaceChildren();
 
       if (count === 0) {
         const emptyEl = document.createElement("div");
@@ -604,7 +648,7 @@
         editBtn.type = "button";
         editBtn.className = "history-item-btn";
         editBtn.title = "Mover tradução para o texto livre para editar";
-        editBtn.innerHTML = PENCIL_ICON_SVG;
+        setElementHtmlSafe(editBtn, PENCIL_ICON_SVG);
         editBtn.addEventListener("click", () => {
           this.handleEditHistoryItem(item);
         });
@@ -613,14 +657,14 @@
         copyItemBtn.type = "button";
         copyItemBtn.className = "history-item-btn";
         copyItemBtn.title = "Copiar tradução novamente";
-        copyItemBtn.innerHTML = COPY_ICON_SVG;
+        setElementHtmlSafe(copyItemBtn, COPY_ICON_SVG);
         copyItemBtn.addEventListener("click", async () => {
           try {
             await navigator.clipboard.writeText(item.translatedText);
-            copyItemBtn.innerHTML = COPIED_ICON_SVG;
+            setElementHtmlSafe(copyItemBtn, COPIED_ICON_SVG);
             copyItemBtn.classList.add("copied");
             setTimeout(() => {
-              copyItemBtn.innerHTML = COPY_ICON_SVG;
+              setElementHtmlSafe(copyItemBtn, COPY_ICON_SVG);
               copyItemBtn.classList.remove("copied");
             }, LIMITS.COPY_FEEDBACK_DURATION_MS);
           } catch (_err) {
@@ -680,7 +724,7 @@
         return;
       }
 
-      selectEl.innerHTML = "";
+      selectEl.replaceChildren();
       for (const language of SUPPORTED_LANGUAGES) {
         const optionEl = document.createElement("option");
         optionEl.value = language.code;
@@ -767,42 +811,10 @@
         translatorModal.classList.add("custom-position", "dragging");
         translatorModal.style.left = `${Math.round(rect.left)}px`;
         translatorModal.style.top = `${Math.round(rect.top)}px`;
-      });
 
-      window.addEventListener("mousemove", (event) => {
-        if (!this.dragState) {
-          return;
-        }
-
-        // Se o botão esquerdo do mouse não estiver pressionado, encerra o arraste imediatamente
-        if (typeof event.buttons === "number" && (event.buttons & 1) === 0) {
-          this.finishModalDrag();
-          return;
-        }
-
-        const desiredX = event.clientX - this.dragState.offsetX;
-        const desiredY = event.clientY - this.dragState.offsetY;
-        const clamped = this.clampCoordinatesToViewport(
-          desiredX,
-          desiredY,
-          this.dragState.width,
-          this.dragState.height
-        );
-
-        this.dragState.currentX = clamped.left;
-        this.dragState.currentY = clamped.top;
-        this.dragState.hasMoved = true;
-
-        translatorModal.style.left = `${clamped.left}px`;
-        translatorModal.style.top = `${clamped.top}px`;
-      }, true);
-
-      window.addEventListener("mouseup", () => {
-        this.finishModalDrag();
-      }, true);
-
-      window.addEventListener("blur", () => {
-        this.finishModalDrag();
+        window.addEventListener("mousemove", this.boundOnMouseMove, true);
+        window.addEventListener("mouseup", this.boundOnMouseUp, true);
+        window.addEventListener("blur", this.boundOnBlur);
       });
 
       quickProviderSelect.addEventListener("change", async () => {
@@ -1217,11 +1229,11 @@
       try {
         await navigator.clipboard.writeText(this.session.translatedText);
         const copyBtn = this.elements.copyBtn;
-        copyBtn.innerHTML = COPIED_ICON_SVG;
+        setElementHtmlSafe(copyBtn, COPIED_ICON_SVG);
         copyBtn.classList.add("copied");
         clearTimeout(this.copyFeedbackTimer);
         this.copyFeedbackTimer = setTimeout(() => {
-          copyBtn.innerHTML = COPY_ICON_SVG;
+          setElementHtmlSafe(copyBtn, COPY_ICON_SVG);
           copyBtn.classList.remove("copied");
         }, LIMITS.COPY_FEEDBACK_DURATION_MS);
       } catch (_clipboardError) {

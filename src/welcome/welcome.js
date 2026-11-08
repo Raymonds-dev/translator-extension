@@ -30,7 +30,7 @@
   }
 
   function populateQuickSetupSelects() {
-    welcomeBaseLangSelect.innerHTML = "";
+    welcomeBaseLangSelect.replaceChildren();
     for (const lang of SUPPORTED_LANGUAGES) {
       const opt = document.createElement("option");
       opt.value = lang.code;
@@ -38,7 +38,7 @@
       welcomeBaseLangSelect.appendChild(opt);
     }
 
-    welcomeProviderSelect.innerHTML = "";
+    welcomeProviderSelect.replaceChildren();
     for (const provider of PROVIDER_CATALOG) {
       const opt = document.createElement("option");
       opt.value = provider.id;
