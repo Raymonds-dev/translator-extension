@@ -1,0 +1,104 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      build_apk:
+        description: 'Compilar APK do Android?'
+        required: true
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-frontend-main
+  cancel-in-progress: true
+
+jobs:
+  # ========================================================
+  # JOB 1: Build da Web (Executado imediatamente nos runners do GitHub)
+  # ========================================================
+  build-web:
+    name: Build Expo Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22 (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci --legacy-peer-deps
+
+      - name: Compilar Web
+        run: bash scripts/build-web.sh
+
+      - name: Salvar artefato Web
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: dist/
+          retention-days: 1
+
+  # ========================================================
+  # JOB 2: Build do APK Android (EAS Local na VPS)
+  # ========================================================
+  build-apk:
+    name: Build APK Android (VPS Local)
+    # Dispara se houver [build-apk] ou [apk] no commit do merge ou se acionado manualmente com build_apk=true
+    if: ${{ contains(github.event.head_commit.message, '[build-apk]') || contains(github.event.head_commit.message, '[apk]') || inputs.build_apk == true }}
+    runs-on: [self-hosted, frontend]
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Instalar dependências
+        run: npm ci --legacy-peer-deps
+
+      - name: Compilar APK via EAS Local
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          ANDROID_HOME: /opt/android-sdk
+        run: bash scripts/build-apk.sh ./collectto.apk
+
+      - name: Salvar artefato APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: ./collectto.apk
+          retention-days: 7
+
+  # ========================================================
+  # JOB 3: Publicação na VPS (Zero compilação na VPS)
+  # ========================================================
+  deploy-vps:
+    name: Publicação na VPS
+    needs: [build-web, build-apk]
+    if: always() && needs.build-web.result == 'success' && (needs.build-apk.result == 'success' || needs.build-apk.result == 'skipped')
+    runs-on: [self-hosted, frontend]
+    steps:
+      - name: Checkout do código (para acessar scripts)
+        uses: actions/checkout@v4
+
+      - name: Baixar artefato da Web
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: ./dist
+
+      - name: Baixar artefato do APK (se gerado)
+        if: needs.build-apk.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+          path: ./apk-artifact
+
+      - name: Publicar artefatos na VPS
+        shell: bash
+        run: bash scripts/publish.sh ./dist ./apk-artifact

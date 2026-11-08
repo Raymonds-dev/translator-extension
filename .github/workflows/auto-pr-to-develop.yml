@@ -1,0 +1,101 @@
+name: Auto PR to develop
+
+on:
+  push:
+    branches:
+      - 'feature/**'
+      - 'fix/**'
+      - 'refactor/**'
+      - 'chore/**'
+      - 'docs/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  validate:
+    uses: ./.github/workflows/ci-validate.yml
+
+  open-or-update-pr:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create or update pull request to develop
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const head = context.ref.replace('refs/heads/', '');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const base = 'develop';
+
+            const validPrefix = /^(feature|fix|refactor|chore|docs)\//;
+            if (!validPrefix.test(head)) {
+              core.info(`Branch ${head} ignored: does not match configured prefixes.`);
+              return;
+            }
+
+            const [type, ...nameParts] = head.split('/');
+            const branchSummaryRaw = nameParts.join('/').replace(/[-_]+/g, ' ').trim();
+
+            // Sempre considera o commit mais recente (HEAD do push), mesmo em pushes com multiplos commits.
+            let latestCommitSubject = '';
+            try {
+              const latestCommit = await github.rest.repos.getCommit({
+                owner,
+                repo,
+                ref: context.sha,
+              });
+              latestCommitSubject = latestCommit.data.commit.message.split('\n')[0].trim();
+            } catch (error) {
+              core.warning(`Could not fetch latest commit message from ${context.sha}: ${error.message}`);
+              const payloadHeadMessage = context.payload?.head_commit?.message || '';
+              latestCommitSubject = payloadHeadMessage.split('\n')[0].trim();
+            }
+
+            const summary = latestCommitSubject || branchSummaryRaw || head;
+            const title = `[${type}] ${summary}`;
+
+            const body = [
+              '## PR criada automaticamente',
+              '',
+              `Este PR foi criado automaticamente a partir do commit \`${context.sha.slice(0, 7)}\` na branch \`${head}\`.`,
+              latestCommitSubject ? `Mensagem do commit mais recente: \`${latestCommitSubject}\`` : null,
+              '',
+              '_Este PR foi aberto automaticamente pelo workflow._'
+            ].filter(Boolean).join('\n');
+
+            const existing = await github.rest.pulls.list({
+              owner,
+              repo,
+              state: 'open',
+              head: `${owner}:${head}`,
+              base,
+              per_page: 1,
+            });
+
+            if (existing.data.length > 0) {
+              const pr = existing.data[0];
+              await github.rest.pulls.update({
+                owner,
+                repo,
+                pull_number: pr.number,
+                title,
+                body,
+              });
+              core.info(`Updated existing PR #${pr.number}.`);
+              return;
+            }
+
+            const created = await github.rest.pulls.create({
+              owner,
+              repo,
+              head,
+              base,
+              title,
+              body,
+              draft: false,
+            });
+
+            core.info(`Created PR #${created.data.number}.`);
