@@ -11,11 +11,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  validate:
-    uses: ./.github/workflows/ci-validate.yml
-
   open-or-update-pr:
-    needs: validate
     runs-on: ubuntu-latest
     steps:
       - name: Create or update pull request develop -> main
