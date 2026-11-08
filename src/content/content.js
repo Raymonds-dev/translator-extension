@@ -11,6 +11,7 @@
   const TranslatorWidget = namespace.TranslatorWidget;
 
   const widget = new TranslatorWidget();
+  namespace.activeContentWidget = widget;
   let lastSelectionText = "";
   let lastSelectionRect = null;
   let lastSidebarSentText = "";

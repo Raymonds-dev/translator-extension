@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tradutor Rápido</title>
+  <title>TraduzAí</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body data-theme="dark">
@@ -11,7 +11,7 @@
     <header class="brand-bar">
       <div class="brand-title-group">
         <img src="../../assets/icons/icon-16.svg" alt="Ícone" class="brand-mini-icon">
-        <span class="brand-title">Tradutor Rápido</span>
+        <span class="brand-title">TraduzAí</span>
       </div>
       <div class="header-actions">
         <select id="quickProviderSelect" class="quick-provider-select" title="Trocar fonte de tradução"></select>
@@ -64,7 +64,16 @@
           ></textarea>
           <div class="input-meta">
             <span id="tempSessionIndicator"></span>
-            <span class="char-counter" id="charCounter">0 / 2000</span>
+            <div class="input-meta-right">
+              <span class="char-counter" id="charCounter">0 / 2000</span>
+              <button type="button" class="translate-submit-btn" id="translateNowBtn" title="Traduzir texto (Ctrl + Enter)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14"></path>
+                  <path d="m12 5 7 7-7 7"></path>
+                </svg>
+                <span>Traduzir</span>
+              </button>
+            </div>
           </div>
         </div>
 
